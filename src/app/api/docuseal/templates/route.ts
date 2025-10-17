@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
 export async function GET(request: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   console.log('[api/docuseal/templates] runtime-info', { NODE_ENV: process.env.NODE_ENV, runtime: typeof globalThis !== 'undefined' ? (globalThis as any).process?.release?.name ?? 'unknown' : 'unknown', sessionFound: !!session });
   if (!session) {
     // Allow anonymous reads (local/dev) so the UI can load templates using the server-side proxy.
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   console.log('[api/docuseal/templates] runtime-info', { NODE_ENV: process.env.NODE_ENV, runtime: typeof globalThis !== 'undefined' ? (globalThis as any).process?.release?.name ?? 'unknown' : 'unknown', sessionFound: !!session });
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

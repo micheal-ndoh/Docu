@@ -4,7 +4,7 @@ import { getServerSession } from "@/lib/auth";
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
 export async function GET(request: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   if (!session) {
     console.warn('[api/docuseal/submitters] no session - proceeding as anonymous');
   }

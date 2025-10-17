@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   if (!session) {
     console.warn('[api/docuseal/templates/[id]] no session - proceeding as anonymous');
   }
@@ -38,7 +38,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const awaitedParams = await params;
@@ -108,7 +108,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const awaitedParams = await params;

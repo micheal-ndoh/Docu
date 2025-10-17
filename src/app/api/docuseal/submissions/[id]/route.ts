@@ -7,7 +7,7 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   if (!session) {
     console.warn('[api/docuseal/submissions/[id]] no session - proceeding as anonymous');
   }
@@ -50,7 +50,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

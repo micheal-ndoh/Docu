@@ -4,7 +4,7 @@ import { getServerSession } from '@/lib/auth';
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || 'https://api.docuseal.com';
 
 export async function POST(request: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   // Allow use of a server-side API key when no user session is available
   const hasServerApiKey = !!process.env.DOCUSEAL_API_KEY;
   if (!session && !hasServerApiKey) {

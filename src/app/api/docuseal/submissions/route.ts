@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
 export async function GET(request: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   if (!session) {
     console.warn('[api/docuseal/submissions] no session - proceeding as anonymous');
   }
@@ -94,7 +94,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession();
+  const session = await getServerSession(request);
   // Accept API key either from server env or from an incoming header.
   const incomingApiKey = request.headers.get('x-auth-token') || request.headers.get('X-Auth-Token');
   const apiKey = process.env.DOCUSEAL_API_KEY ?? incomingApiKey ?? '';
