@@ -15,13 +15,35 @@ export default function SignInPage() {
     e.preventDefault();
     setError("");
     try {
-      await signIn.email({
-        email,
-        password,
-      });
+      // Try the helper first (better-auth client). Some environments or
+      // library versions behave differently; fall back to a direct POST
+      // to the auth endpoint if the helper throws or the response is
+      // not successful.
+      await signIn.email({ email, password });
       window.location.href = "/";
     } catch (error: any) {
-      setError(error.message || "Invalid credentials");
+      // Helper failed — try raw fetch to mirror curl behavior
+      try {
+        const res = await fetch('/api/auth/sign-in/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          // ensure cookies are handled for same-origin
+          credentials: 'same-origin',
+        });
+
+        if (res.ok) {
+          // server should set session cookie; navigate to home
+          window.location.href = '/';
+          return;
+        }
+
+        const body = await res.json().catch(() => null);
+        const msg = body?.message || body?.error || 'Invalid credentials';
+        setError(msg);
+      } catch (fetchErr: any) {
+        setError(fetchErr?.message || 'Invalid credentials');
+      }
     }
   };
 

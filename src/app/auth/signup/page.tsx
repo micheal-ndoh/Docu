@@ -11,11 +11,19 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Client-side password length guard to avoid server PASSWORD_TOO_SHORT
+    const MIN_PASSWORD = 10;
+    if (password.length < MIN_PASSWORD) {
+      setError(`Password must be at least ${MIN_PASSWORD} characters`);
+      return;
+    }
 
     try {
       await signUp.email({
@@ -24,13 +32,8 @@ export default function SignUpPage() {
         name: email.split("@")[0], // Use email prefix as default name
       });
       
-      // Automatically sign in after successful signup
-      await signIn.email({
-        email,
-        password,
-      });
-      
-      router.push("/");
+      // Redirect to sign-in page after successful signup
+      router.push("/auth/signin?message=Account created. Please sign in.");
     } catch (err: any) {
       setError(err.message || "Failed to sign up.");
     }
@@ -74,7 +77,14 @@ export default function SignUpPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => setPasswordTouched(true)}
             />
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Password must be at least 10 characters.
+            </p>
+            {passwordTouched && password.length < 10 && (
+              <p className="mt-2 text-sm text-red-500">Password is too short.</p>
+            )}
           </div>
           <Button type="submit" className="w-full">
             Sign Up with Email

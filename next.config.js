@@ -10,8 +10,10 @@
  * restore the previous config. Otherwise this plain config works for
  * standard Next.js setups.
  *
- * @type {import('next').NextConfig}
  */
+require('dotenv').config({ path: './.env' });
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   // Any Next.js config options can go here.
   transpilePackages: [],

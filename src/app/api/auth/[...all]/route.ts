@@ -21,7 +21,22 @@ function redact(obj: any) {
 }
 
 export async function GET(request: Request) {
-  if (shouldLog) console.log('[api/auth] GET', { url: request.url });
+  if (shouldLog) {
+    try {
+      const raw = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL || '';
+      const safe = raw.replace(/^prisma\+/, '');
+      let hostInfo = { host: 'unknown', port: '' };
+      try {
+        const u = new URL(safe);
+        hostInfo = { host: u.hostname, port: u.port || (u.protocol === 'postgres:' ? '5432' : '') };
+      } catch (e) {
+        // ignore parse errors
+      }
+      console.log('[api/auth] GET', { url: request.url, dbHost: hostInfo, cookiePreview: (request.headers.get('cookie') || '').slice(0, 200) });
+    } catch (err) {
+      console.log('[api/auth] GET', { url: request.url });
+    }
+  }
   return auth.handler(request)
 }
 
@@ -32,7 +47,17 @@ export async function POST(request: Request) {
       if (contentType.includes('application/json')) {
         const clone = request.clone();
         const body = await clone.json().catch(() => null);
-        console.log('[api/auth] POST', { url: request.url, body: redact(body) });
+        // also log DB host info and a cookie preview to help diagnose env issues
+        const raw = process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL || '';
+        const safe = raw.replace(/^prisma\+/, '');
+        let hostInfo = { host: 'unknown', port: '' };
+        try {
+          const u = new URL(safe);
+          hostInfo = { host: u.hostname, port: u.port || (u.protocol === 'postgres:' ? '5432' : '') };
+        } catch (e) {
+          // ignore
+        }
+        console.log('[api/auth] POST', { url: request.url, body: redact(body), dbHost: hostInfo, cookiePreview: (request.headers.get('cookie') || '').slice(0, 200) });
       } else if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
         // Don't attempt to parse multipart/form-data here; just log headers
         console.log('[api/auth] POST', { url: request.url, contentType });

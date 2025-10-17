@@ -45,9 +45,32 @@ export async function getServerSession(request?: Request): Promise<Session | nul
       return await anyAuth.getSession(request ?? undefined);
     }
 
-    // If neither helper exists, we can't derive a session here without
-    // coupling into internal storage. Return null so callers can fallback
-    // to server API keys or anonymous behavior.
+    // If neither helper exists but we have the incoming Request, try to
+    // proxy a small request to the auth handler's get-session endpoint so
+    // the same cookie/session logic is used.
+    if (request) {
+      try {
+        const cookie = request.headers.get('cookie') || '';
+        const base = process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const url = new URL('/api/auth/get-session', base).toString();
+        // Call the library's handler directly so it reads the cookie and
+        // responds with the session if present.
+        if (typeof anyAuth.handler === 'function') {
+          const res: Response = await anyAuth.handler(new Request(url, { headers: { cookie } }));
+          try {
+            const json = await res.json();
+            // The auth handler typically returns session or { session }
+            return json?.session ?? json ?? null;
+          } catch (err) {
+            return null;
+          }
+        }
+      } catch (err) {
+        console.error('Error proxying to auth.handler for session:', err);
+      }
+    }
+
+    // If all else fails, return null so callers can fallback.
     return null;
   } catch (error) {
     console.error('Error obtaining server session from better-auth:', error);
