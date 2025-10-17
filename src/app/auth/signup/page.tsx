@@ -31,7 +31,7 @@ export default function SignUpPage() {
         password,
         name: email.split("@")[0], // Use email prefix as default name
       });
-      
+
       // Redirect to sign-in page after successful signup
       router.push("/auth/signin?message=Account created. Please sign in.");
     } catch (err: any) {
@@ -48,7 +48,6 @@ export default function SignUpPage() {
       setError(error.message || "Google sign-in failed");
     }
   };
-
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
@@ -83,7 +82,9 @@ export default function SignUpPage() {
               Password must be at least 10 characters.
             </p>
             {passwordTouched && password.length < 10 && (
-              <p className="mt-2 text-sm text-red-500">Password is too short.</p>
+              <p className="mt-2 text-sm text-red-500">
+                Password is too short.
+              </p>
             )}
           </div>
           <Button type="submit" className="w-full">

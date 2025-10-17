@@ -24,25 +24,25 @@ export default function SignInPage() {
     } catch (error: any) {
       // Helper failed — try raw fetch to mirror curl behavior
       try {
-        const res = await fetch('/api/auth/sign-in/email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/auth/sign-in/email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
           // ensure cookies are handled for same-origin
-          credentials: 'same-origin',
+          credentials: "same-origin",
         });
 
         if (res.ok) {
           // server should set session cookie; navigate to home
-          window.location.href = '/';
+          window.location.href = "/";
           return;
         }
 
         const body = await res.json().catch(() => null);
-        const msg = body?.message || body?.error || 'Invalid credentials';
+        const msg = body?.message || body?.error || "Invalid credentials";
         setError(msg);
       } catch (fetchErr: any) {
-        setError(fetchErr?.message || 'Invalid credentials');
+        setError(fetchErr?.message || "Invalid credentials");
       }
     }
   };
@@ -56,7 +56,6 @@ export default function SignInPage() {
       setError(error.message || "Google sign-in failed");
     }
   };
-
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900">
