@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, User, Mail } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -30,13 +30,6 @@ export function Navbar() {
         {/* Right side */}
         <div className="flex flex-1 items-center justify-end space-x-2">
           <div className="flex items-center space-x-2">
-            {/* Count indicator */}
-            <div className="flex items-center space-x-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 rounded-md shadow-sm">
-              <Mail className="h-4 w-4 text-gray-500" />
-              <span className="font-medium text-gray-700 dark:text-gray-300">6</span>
-              <span className="text-gray-400">/</span>
-              <span className="text-gray-500 dark:text-gray-400">10</span>
-            </div>
             <ThemeToggle />
             {session ? (
               <DropdownMenu>
@@ -70,13 +63,6 @@ export function Navbar() {
                       </p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={() => signOut()}

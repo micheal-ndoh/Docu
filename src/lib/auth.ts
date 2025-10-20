@@ -40,21 +40,24 @@ export type Session = typeof auth.$Infer.Session
 export async function getServerSession(request?: Request): Promise<Session | null> {
   try {
     const anyAuth = auth as any;
+    console.log('[getServerSession] Attempting to get server session...');
 
     if (typeof anyAuth.getServerSession === 'function') {
-      return await anyAuth.getServerSession(request ?? undefined);
+      const session = await anyAuth.getServerSession(request ?? undefined);
+      console.log('[getServerSession] Using getServerSession, session:', session ? 'found' : 'not found');
+      return session;
     }
 
     if (typeof anyAuth.getSession === 'function') {
-      return await anyAuth.getSession(request ?? undefined);
+      const session = await anyAuth.getSession(request ?? undefined);
+      console.log('[getServerSession] Using getSession, session:', session ? 'found' : 'not found');
+      return session;
     }
 
-    // If neither helper exists, we can't derive a session here without
-    // coupling into internal storage. Return null so callers can fallback
-    // to server API keys or anonymous behavior.
+    console.warn('[getServerSession] No server session helper found in better-auth.');
     return null;
   } catch (error) {
-    console.error('Error obtaining server session from better-auth:', error);
+    console.error('[getServerSession] Error obtaining server session from better-auth:', error);
     return null;
   }
 }

@@ -6,14 +6,13 @@ export const runtime = 'nodejs';
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
+  const awaitedParams = await params;
+  const id = awaitedParams.id;
   const session = await getServerSession(request);
   if (!session) {
     console.warn('[api/docuseal/templates/[id]] no session - proceeding as anonymous');
   }
 
-  // Next.js recommends awaiting params in dynamic API routes
-  const awaitedParams = await params;
-  const id = awaitedParams.id;
   try {
     const res = await fetch(`${DOCUSEAL_API_BASE_URL}/templates/${id}`, {
       headers: {
@@ -38,11 +37,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
+  const awaitedParams = await params;
+  const id = awaitedParams.id;
   const session = await getServerSession(request);
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const awaitedParams = await params;
-  const id = awaitedParams.id;
   try {
     // Accept either JSON body (metadata update) or multipart/form-data (document replacement)
     const contentType = request.headers.get("content-type") || "";
@@ -108,17 +107,29 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  console.log('[api/docuseal/templates/[id]] DELETE request received for ID:', params.id);
   const session = await getServerSession(request);
-  if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  if (!session) {
+    console.warn('[api/docuseal/templates/[id]] Unauthorized: No session found.');
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+  console.log('[api/docuseal/templates/[id]] Session found for user:', session.user?.email);
 
   const awaitedParams = await params;
   const id = awaitedParams.id;
   try {
-    const outgoingUrl = `${DOCUSEAL_API_BASE_URL}/templates/${id}`;
-    console.log('[api/docuseal/templates/[id]] DELETE forwarding to DocuSeal', { outgoingUrl, hasApiKey: !!process.env.DOCUSEAL_API_KEY });
+    const docusealApiKey = process.env.DOCUSEAL_API_KEY;
+    if (!docusealApiKey) {
+      console.error('[api/docuseal/templates/[id]] DOCUSEAL_API_KEY is not set.');
+      return NextResponse.json({ message: "Server configuration error: DocuSeal API key missing." }, { status: 500 });
+    }
+    console.log('[api/docuseal/templates/[id]] Using DOCUSEAL_API_KEY:', docusealApiKey ? 'present' : 'missing');
+
+    const outgoingUrl = `${DOCUSEAL_API_BASE_URL}/templates/${id}?permanently=true`;
+    console.log('[api/docuseal/templates/[id]] DELETE forwarding to DocuSeal', { outgoingUrl, hasApiKey: !!docusealApiKey });
     const res = await fetch(outgoingUrl, {
       method: "DELETE",
-      headers: { "X-Auth-Token": process.env.DOCUSEAL_API_KEY ?? "" },
+      headers: { "X-Auth-Token": docusealApiKey },
     });
 
     if (!res.ok) {

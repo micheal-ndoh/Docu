@@ -222,6 +222,7 @@ export default function HomePage() {
                 {/* Document Templates Box (Always active since it's current page) */}
                 <div className="flex items-center space-x-2 rounded-lg px-3 py-2 bg-black text-white dark:bg-white dark:text-black">
                   <LayoutGrid className="h-4 w-4" />
+                  <span className="text-xs font-medium">{templates.length}</span>
                 </div>
                 
                 {/* Submissions Box */}
