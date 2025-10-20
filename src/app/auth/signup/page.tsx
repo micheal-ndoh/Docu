@@ -6,33 +6,77 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { signUpSchema, type SignUpFormData } from "@/lib/validations";
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [attempts, setAttempts] = useState(0);
   const router = useRouter();
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+  });
+
+  const password = watch("password");
+
+  const onSubmit = async (data: SignUpFormData) => {
     setError("");
+
+    if (attempts >= 5) {
+      setError("Too many failed attempts. Please wait a few minutes before trying again.");
+      return;
+    }
 
     try {
       await signUp.email({
-        email,
-        password,
-        name: email.split("@")[0], // Use email prefix as default name
+        email: data.email,
+        password: data.password,
+        name: data.email.split("@")[0], // Use email prefix as default name
       });
-      
+
+      setAttempts(0); // Reset on success
       // Automatically sign in after successful signup
       await signIn.email({
-        email,
-        password,
+        email: data.email,
+        password: data.password,
       });
-      
+
       router.push("/");
     } catch (err: any) {
-      setError(err.message || "Failed to sign up.");
+      setAttempts(prev => prev + 1);
+      console.log("Sign up error:", err); // Debug log
+
+      const errorMessage = err.message?.toLowerCase() || "";
+      const errorCode = err.status || err.code;
+
+      if (errorCode === 422 || errorMessage.includes("already exists") || errorMessage.includes("duplicate") || errorMessage.includes("unique constraint")) {
+        setError("An account with this email already exists. Please sign in instead.");
+        // Optionally, automatically sign in the user if they are already registered
+        try {
+          await signIn.email({
+            email: data.email,
+            password: data.password,
+          });
+          router.push("/");
+        } catch (signInErr: any) {
+          // If sign in fails, keep the error message
+        }
+      } else if (errorMessage.includes("rate limit") || errorMessage.includes("too many") || errorMessage.includes("attempt")) {
+        setError("Too many attempts. Please wait before trying again.");
+      } else if (errorMessage.includes("password") && errorMessage.includes("weak")) {
+        setError("Password is too weak. Please choose a stronger password.");
+      } else if (errorMessage.includes("email") && errorMessage.includes("invalid")) {
+        setError("Please enter a valid email address.");
+      } else {
+        setError(err.message || "Failed to sign up.");
+      }
     }
   };
 
@@ -54,30 +98,32 @@ export default function SignUpPage() {
           Sign Up
         </h2>
         {error && <p className="mb-4 text-center text-red-500">{error}</p>}
-        <form onSubmit={handleSignUp} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
               placeholder="Enter your email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              {...register("email")}
             />
+            {errors.email && (
+              <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
+            )}
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              {...register("password")}
             />
+            {errors.password && (
+              <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+            )}
           </div>
-          <Button type="submit" className="w-full">
-            Sign Up with Email
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Signing Up..." : "Sign Up with Email"}
           </Button>
         </form>
         <div className="relative my-6">

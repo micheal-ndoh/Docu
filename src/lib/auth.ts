@@ -25,6 +25,10 @@ export const auth = betterAuth({
   },
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || "http://localhost:3000",
+  rateLimit: {
+    window: 60 * 1000, // 1 minute
+    max: 10, // 10 requests per minute
+  },
 })
 
 export type Session = typeof auth.$Infer.Session
