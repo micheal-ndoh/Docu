@@ -29,6 +29,8 @@ export async function GET(request: Request) {
       where: { userId },
     });
 
+    console.log(`[api/docuseal/templates] Found ${userTemplates.length} templates in database for user ${userId}`);
+
     if (userTemplates.length === 0) {
       // User has no templates, return empty array
       console.log(`[api/docuseal/templates] User ${userId} has no templates in database`);
@@ -60,11 +62,14 @@ export async function GET(request: Request) {
 
     const outgoingUrl = `${DOCUSEAL_API_BASE_URL}/templates?${forwarded.toString()}`;
     console.log('[api/docuseal/templates] forwarding GET to DocuSeal', { outgoingUrl, hasApiKey: !!process.env.DOCUSEAL_API_KEY, apiKeyLength: process.env.DOCUSEAL_API_KEY?.length ?? 0 });
+    console.log(`[api/docuseal/templates] Fetching from DocuSeal API: ${outgoingUrl}`);
     const docusealResponse = await fetch(outgoingUrl, {
       headers: {
         "X-Auth-Token": process.env.DOCUSEAL_API_KEY ?? "",
       },
     });
+
+    console.log(`[api/docuseal/templates] DocuSeal API response status: ${docusealResponse.status}`);
 
     if (!docusealResponse.ok) {
       // Log DocuSeal error for debugging
@@ -76,12 +81,22 @@ export async function GET(request: Request) {
     }
 
     const data = await docusealResponse.json();
+    console.log(`[api/docuseal/templates] DocuSeal API returned ${Array.isArray(data) ? data.length : (data.data || []).length} templates`);
 
     // Filter templates to only include user's templates
     let templates = Array.isArray(data) ? data : (data.data || []);
-    templates = templates.filter((tmpl: any) => templateIds.includes(tmpl.id));
+    console.log(`[api/docuseal/templates] Before filtering: ${templates.length} templates`);
+    console.log(`[api/docuseal/templates] Filtering by template IDs:`, templateIds);
 
-    console.log(`[api/docuseal/templates] Filtered ${templates.length} templates for user ${userId} from ${Array.isArray(data) ? data.length : (data.data || []).length} total templates`);
+    templates = templates.filter((tmpl: any) => {
+      const matches = templateIds.includes(tmpl.id);
+      if (matches) {
+        console.log(`[api/docuseal/templates] Including template ${tmpl.id}: ${tmpl.name}`);
+      }
+      return matches;
+    });
+
+    console.log(`[api/docuseal/templates] After filtering: ${templates.length} templates for user ${userId}`);
 
     // Normalize array responses to { data: [...] } so frontend can rely on a consistent shape
     if (Array.isArray(data)) {
