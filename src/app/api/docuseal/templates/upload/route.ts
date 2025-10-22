@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
+import { db as prisma } from '@/db';
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || 'https://api.docuseal.com';
 
@@ -14,7 +15,6 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const name = (formData.get('name') as string) || formData.get('template_name') || 'Uploaded Template';
 
     if (!file) {
       return NextResponse.json({ message: 'File is required' }, { status: 400 });
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
 
     const mime = uploaded.type || '';
     const filename = uploaded.name || 'document';
+    const name = (formData.get('name') as string) || formData.get('template_name') || filename.replace(/\.[^/.]+$/, '');
     const isDocx = mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || filename.toLowerCase().endsWith('.docx');
 
     let targetPath = '/templates/pdf';
@@ -67,6 +68,25 @@ export async function POST(request: Request) {
     }
 
     const data = await res.json();
+    
+    // Save template to database for tracking
+    try {
+      const userId = session?.user?.id;
+      if (userId && data.id) {
+        await prisma.template.create({
+          data: {
+            userId: userId,
+            docusealId: data.id,
+            name: data.name || name,
+          },
+        });
+        console.log(`[api/docuseal/templates/upload] Saved template ${data.id} to database for user ${userId}`);
+      }
+    } catch (dbError) {
+      console.error('[api/docuseal/templates/upload] Error saving template to database:', dbError);
+      // Don't fail the request if database save fails
+    }
+    
     return NextResponse.json(data, { status: 201 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

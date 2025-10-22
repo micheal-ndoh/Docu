@@ -5,7 +5,7 @@ const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(request);
   if (!session) {
@@ -13,7 +13,9 @@ export async function GET(
   }
 
   try {
-    const { id } = params;
+    const { id } = await params;
+    
+    // Fetch submission data
     const docusealResponse = await fetch(
       `${DOCUSEAL_API_BASE_URL}/submissions/${id}`,
       {
@@ -31,10 +33,11 @@ export async function GET(
       });
     }
 
-    const data = await docusealResponse.json();
-    return NextResponse.json({ data });
+    const submission = await docusealResponse.json();
+    return NextResponse.json(submission);
   } catch (error: unknown) {
-    console.error(`Error fetching DocuSeal submission ${params.id}:`, error);
+    const { id } = await params;
+    console.error(`Error fetching DocuSeal submission ${id}:`, error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
@@ -91,7 +94,7 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error(`Error deleting DocuSeal submission ${params.id}:`, error);
+    console.error(`Error deleting DocuSeal submission ${id}:`, error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
