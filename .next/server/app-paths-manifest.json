@@ -1,0 +1,22 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/auth/[...all]/route": "app/api/auth/[...all]/route.js",
+  "/api/docuseal/builder_token/route": "app/api/docuseal/builder_token/route.js",
+  "/api/docuseal/submissions/[id]/documents/route": "app/api/docuseal/submissions/[id]/documents/route.js",
+  "/api/docuseal/submissions/[id]/route": "app/api/docuseal/submissions/[id]/route.js",
+  "/api/docuseal/submitters/route": "app/api/docuseal/submitters/route.js",
+  "/api/docuseal/submitters/[id]/route": "app/api/docuseal/submitters/[id]/route.js",
+  "/api/docuseal/templates/upload/route": "app/api/docuseal/templates/upload/route.js",
+  "/api/hello/route": "app/api/hello/route.js",
+  "/api/docuseal/templates/[id]/route": "app/api/docuseal/templates/[id]/route.js",
+  "/api/docuseal/templates/route": "app/api/docuseal/templates/route.js",
+  "/api/docuseal/submissions/route": "app/api/docuseal/submissions/route.js",
+  "/submissions/page": "app/submissions/page.js",
+  "/submissions/[id]/sign/page": "app/submissions/[id]/sign/page.js",
+  "/templates/[id]/page": "app/templates/[id]/page.js",
+  "/auth/signin/page": "app/auth/signin/page.js",
+  "/templates/page": "app/templates/page.js",
+  "/templates/[id]/edit/page": "app/templates/[id]/edit/page.js",
+  "/page": "app/page.js",
+  "/auth/signup/page": "app/auth/signup/page.js"
+}
