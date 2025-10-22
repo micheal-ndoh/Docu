@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "@/lib/auth";
+import { db as prisma } from "@/db";
 
 export const runtime = 'nodejs';
 
@@ -9,13 +10,18 @@ const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.
 export async function GET(request: Request) {
   const session = await getServerSession(request);
   console.log('[api/docuseal/templates] runtime-info', { NODE_ENV: process.env.NODE_ENV, runtime: typeof globalThis !== 'undefined' ? (globalThis as any).process?.release?.name ?? 'unknown' : 'unknown', sessionFound: !!session });
+  
+  // Require authentication to view templates
   if (!session) {
-    // Allow anonymous reads (local/dev) so the UI can load templates using the server-side proxy.
-    // If you want to enforce auth in production, gate this behind an env flag.
-    console.warn('[api/docuseal/templates] no session - proceeding as anonymous');
+    return NextResponse.json({ message: "Unauthorized - please sign in to view templates" }, { status: 401 });
   }
 
-  console.log('[api/docuseal/templates] GET', { url: request.url });
+  const userId = session.user?.id;
+  if (!userId) {
+    return NextResponse.json({ message: "User ID not found in session" }, { status: 400 });
+  }
+
+  console.log('[api/docuseal/templates] GET', { url: request.url, userId });
 
   try {
     const { searchParams } = new URL(request.url);
@@ -56,11 +62,24 @@ export async function GET(request: Request) {
     }
 
     const data = await docusealResponse.json();
+    
+    // Get user's templates from database
+    const userTemplates = await prisma.template.findMany({
+      where: { userId },
+    });
+    const templateIds = userTemplates.map(t => t.docusealId);
+    
+    // Filter templates to only include user's templates
+    let templates = Array.isArray(data) ? data : (data.data || []);
+    templates = templates.filter((tmpl: any) => templateIds.includes(tmpl.id));
+    
+    console.log(`[api/docuseal/templates] Filtered ${templates.length} templates for user ${userId}`);
+    
     // Normalize array responses to { data: [...] } so frontend can rely on a consistent shape
     if (Array.isArray(data)) {
-      return NextResponse.json({ data });
+      return NextResponse.json({ data: templates });
     }
-    return NextResponse.json(data);
+    return NextResponse.json({ ...data, data: templates });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Error fetching DocuSeal templates:", message);
@@ -155,6 +174,25 @@ export async function POST(request: Request) {
     }
 
     const data = await docusealResponse.json();
+    
+    // Save template to database for tracking
+    try {
+      const userId = session.user?.id;
+      if (userId && data.id) {
+        await prisma.template.create({
+          data: {
+            userId: userId,
+            docusealId: data.id,
+            name: data.name || name,
+          },
+        });
+        console.log(`[api/docuseal/templates] Saved template ${data.id} to database for user ${userId}`);
+      }
+    } catch (dbError) {
+      console.error('[api/docuseal/templates] Error saving template to database:', dbError);
+      // Don't fail the request if database save fails
+    }
+    
     return NextResponse.json(data, { status: 201 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
