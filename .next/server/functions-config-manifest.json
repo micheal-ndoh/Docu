@@ -1,8 +1,0 @@
-{
-  "version": 1,
-  "functions": {
-    "/api/docuseal/templates": {},
-    "/api/docuseal/submissions": {},
-    "/api/docuseal/templates/[id]": {}
-  }
-}
