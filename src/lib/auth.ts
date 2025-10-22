@@ -34,28 +34,21 @@ export const auth = betterAuth({
 export type Session = typeof auth.$Infer.Session
 
 // Helper to obtain server session in a stable way for API routes.
-// The better-auth library exposes various helpers; use defensive checks
-// so this code works across versions and in environments where server
-// session helpers may not be available.
-export async function getServerSession(request?: Request): Promise<Session | null> {
+// better-auth uses the auth.api.getSession method which requires headers
+export async function getServerSession(request: Request): Promise<Session | null> {
   try {
-    const anyAuth = auth as any;
     console.log('[getServerSession] Attempting to get server session...');
-
-    if (typeof anyAuth.getServerSession === 'function') {
-      const session = await anyAuth.getServerSession(request ?? undefined);
-      console.log('[getServerSession] Using getServerSession, session:', session ? 'found' : 'not found');
-      return session;
-    }
-
-    if (typeof anyAuth.getSession === 'function') {
-      const session = await anyAuth.getSession(request ?? undefined);
-      console.log('[getServerSession] Using getSession, session:', session ? 'found' : 'not found');
-      return session;
-    }
-
-    console.warn('[getServerSession] No server session helper found in better-auth.');
-    return null;
+    
+    // better-auth requires headers to extract session token
+    const headers = request.headers;
+    
+    // Use auth.api.getSession with headers
+    const session = await auth.api.getSession({ 
+      headers 
+    });
+    
+    console.log('[getServerSession] Session:', session ? 'found' : 'not found');
+    return session;
   } catch (error) {
     console.error('[getServerSession] Error obtaining server session from better-auth:', error);
     return null;
