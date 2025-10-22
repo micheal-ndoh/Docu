@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth';
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { db } from '@/db';
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || 'https://api.docuseal.com';
 
