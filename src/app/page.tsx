@@ -49,6 +49,8 @@ export default function HomePage() {
             [key: string]: unknown;
           };
       date?: string;
+      created_at?: string;
+      [key: string]: unknown;
     }[]
   >([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
@@ -328,23 +330,12 @@ export default function HomePage() {
 
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <User className="h-3 w-3" />
-                  <span>
-                    {typeof template.author === 'string'
-                      ? template.author
-                      : template.author && typeof template.author === 'object'
-                      ? template.author.first_name || template.author.name
-                        ? `${template.author.first_name ?? ''} ${
-                            template.author.last_name ?? ''
-                          }`.trim() || template.author.name
-                        : template.author.email ??
-                          JSON.stringify(template.author)
-                      : 'Unknown'}
-                  </span>
+                  <span>{session?.user?.name || 'Unknown'}</span>
                 </div>
 
                 <div className="mt-2 flex items-center space-x-2 text-sm text-muted-foreground">
                   <Calendar className="h-3 w-3" />
-                  <span>{template.date}</span>
+                  <span>{template.created_at ? new Date(template.created_at).toLocaleDateString() : 'Unknown'}</span>
                 </div>
               </CardContent>
             </Card>

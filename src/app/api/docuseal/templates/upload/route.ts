@@ -15,7 +15,6 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const name = (formData.get('name') as string) || formData.get('template_name') || 'Uploaded Template';
 
     if (!file) {
       return NextResponse.json({ message: 'File is required' }, { status: 400 });
@@ -34,6 +33,7 @@ export async function POST(request: Request) {
 
     const mime = uploaded.type || '';
     const filename = uploaded.name || 'document';
+    const name = (formData.get('name') as string) || formData.get('template_name') || filename.replace(/\.[^/.]+$/, '');
     const isDocx = mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || filename.toLowerCase().endsWith('.docx');
 
     let targetPath = '/templates/pdf';
