@@ -10,7 +10,7 @@ const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.
 export async function GET(request: Request) {
   const session = await getServerSession(request);
   console.log('[api/docuseal/templates] runtime-info', { NODE_ENV: process.env.NODE_ENV, runtime: typeof globalThis !== 'undefined' ? (globalThis as any).process?.release?.name ?? 'unknown' : 'unknown', sessionFound: !!session });
-  
+
   // Require authentication to view templates
   if (!session) {
     return NextResponse.json({ message: "Unauthorized - please sign in to view templates" }, { status: 401 });
@@ -24,6 +24,20 @@ export async function GET(request: Request) {
   console.log('[api/docuseal/templates] GET', { url: request.url, userId });
 
   try {
+    // Get user's templates from database first
+    const userTemplates = await prisma.template.findMany({
+      where: { userId },
+    });
+
+    if (userTemplates.length === 0) {
+      // User has no templates, return empty array
+      console.log(`[api/docuseal/templates] User ${userId} has no templates in database`);
+      return NextResponse.json({ data: [] });
+    }
+
+    const templateIds = userTemplates.map(t => t.docusealId);
+    console.log(`[api/docuseal/templates] User ${userId} has ${templateIds.length} templates:`, templateIds);
+
     const { searchParams } = new URL(request.url);
     // Forward commonly used filters from query string (q, slug, external_id, folder, archived, limit, after, before)
     const allowed = [
@@ -41,8 +55,8 @@ export async function GET(request: Request) {
       const v = searchParams.get(key);
       if (v) forwarded.set(key, v);
     }
-    // default to limit=10 if not provided
-    if (!forwarded.has('limit')) forwarded.set('limit', '10');
+    // default to limit=100 if not provided to get all user's templates
+    if (!forwarded.has('limit')) forwarded.set('limit', '100');
 
     const outgoingUrl = `${DOCUSEAL_API_BASE_URL}/templates?${forwarded.toString()}`;
     console.log('[api/docuseal/templates] forwarding GET to DocuSeal', { outgoingUrl, hasApiKey: !!process.env.DOCUSEAL_API_KEY, apiKeyLength: process.env.DOCUSEAL_API_KEY?.length ?? 0 });
@@ -62,19 +76,13 @@ export async function GET(request: Request) {
     }
 
     const data = await docusealResponse.json();
-    
-    // Get user's templates from database
-    const userTemplates = await prisma.template.findMany({
-      where: { userId },
-    });
-    const templateIds = userTemplates.map(t => t.docusealId);
-    
+
     // Filter templates to only include user's templates
     let templates = Array.isArray(data) ? data : (data.data || []);
     templates = templates.filter((tmpl: any) => templateIds.includes(tmpl.id));
-    
-    console.log(`[api/docuseal/templates] Filtered ${templates.length} templates for user ${userId}`);
-    
+
+    console.log(`[api/docuseal/templates] Filtered ${templates.length} templates for user ${userId} from ${Array.isArray(data) ? data.length : (data.data || []).length} total templates`);
+
     // Normalize array responses to { data: [...] } so frontend can rely on a consistent shape
     if (Array.isArray(data)) {
       return NextResponse.json({ data: templates });
