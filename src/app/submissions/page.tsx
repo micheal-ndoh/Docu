@@ -71,7 +71,7 @@ export default function SubmissionsPage() {
     useForm<CreateSubmissionForm>({
       defaultValues: {
         submitters: [{ email: '', name: '', role: '' }],
-        send_email: true,
+        send_email: false, // Use in-app signing instead of email
       },
     });
 
@@ -172,11 +172,24 @@ export default function SubmissionsPage() {
       const responseData = await response.json();
       console.log('Response data:', responseData);
 
-      // DocuSeal API returns an array of submitters, not a full submission
-      // We need to refetch the submissions list to get the updated data
-      toast.success('Submission created successfully!');
-      reset();
-      await fetchSubmissions();
+      // DocuSeal API returns an array of submitters
+      const submitters = Array.isArray(responseData) ? responseData : [responseData];
+      const submissionId = submitters[0]?.submission_id;
+      
+      if (submissionId) {
+        toast.success('Submission created! Redirecting to signing page...', {
+          description: 'You can sign the document now or copy the link to share.',
+        });
+        // Small delay to ensure submission is fully created
+        setTimeout(() => {
+          router.push(`/submissions/${submissionId}/sign`);
+        }, 500);
+      } else {
+        // Fallback if no submission ID
+        toast.success('Submission created successfully!');
+        reset();
+        await fetchSubmissions();
+      }
     } catch (error: unknown) {
       console.error('Submission error:', error);
       toast.error('Error creating submission', {
@@ -468,15 +481,8 @@ export default function SubmissionsPage() {
                   Add Submitter
                 </Button>
 
-                <div className="flex items-center space-x-2">
-                  <input
-                    id="send_email"
-                    type="checkbox"
-                    {...register('send_email')}
-                    defaultChecked
-                  />
-                  <Label htmlFor="send_email">Send email invitation</Label>
-                </div>
+                {/* Email removed - using in-app signing instead */}
+                {/* Users can copy the signing link from the submissions list to share manually */}
 
                 <Button type="submit" disabled={creating}>
                   {creating && (
