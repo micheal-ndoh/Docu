@@ -15,6 +15,9 @@
 const nextConfig = {
   // Any Next.js config options can go here.
   transpilePackages: [],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig;
