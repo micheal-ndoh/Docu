@@ -1,4 +1,5 @@
 import './global.css';
+
 import ClientProviders from '@/components/client-providers';
 
 export const metadata = {
@@ -24,7 +25,7 @@ export default function RootLayout({
         <svg className="hidden-svg">
           <defs>
             <clipPath id="folder-clip" clipPathUnits="objectBoundingBox">
-              <path d="M0,0.1 C0,0.05 0.05,0 0.1,0 L0.35,0 C0.375,0 0.4,0.05 0.4,0.1 L0.4,0.1 L0.9,0.1 C0.95,0.1 1,0.15 1,0.2 L1,0.9 C1,0.95 0.95,1 0.9,1 L0.1,1 C0.05,1 0,0.95 0,0.9 L0,0.1 Z" />
+              <path d="M0,0.1 C0,0.04 0.04,0 0.1,0 L0.35,0 C0.38,0 0.4,0.03 0.4,0.06 L0.9,0.06 C0.96,0.06 1,0.1 1,0.15 L1,0.85 C1,0.9 0.95,0.95 0.9,0.95 L0.65,0.95 C0.6,0.95 0.58,1 0.5,1 C0.42,1 0.4,0.95 0.35,0.95 L0.1,0.95 C0.04,0.95 0,0.9 0,0.85 L0,0.1 Z" />
             </clipPath>
           </defs>
         </svg>
