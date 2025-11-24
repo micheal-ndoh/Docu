@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/loading-skeletons';
+import { LandingPage } from '@/components/landing/main-page';
 
 export default function HomePage() {
   const { data: session, isPending } = useSession();
@@ -180,34 +181,7 @@ export default function HomePage() {
   }
 
   if (!session) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="mx-auto max-w-md text-center">
-          <div className="mb-8 flex justify-center">
-            <span className="text-6xl">🐵</span>
-          </div>
-          <h1 className="mb-4 text-3xl font-bold tracking-tight">
-            Welcome to DocuSeal App
-          </h1>
-          <p className="mb-8 text-muted-foreground">
-            Create, manage, and track your document templates and submissions
-            with ease.
-          </p>
-          <div className="space-y-4">
-            <Link href="/auth/signin">
-              <Button size="lg" className="w-full">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/auth/signup">
-              <Button variant="outline" size="lg" className="w-full">
-                Create Account
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <LandingPage />;
   }
 
   // templates loaded from API into state
