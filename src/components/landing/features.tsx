@@ -27,45 +27,49 @@ const featuresRight = [
 
 export function Features() {
   const [isVisible, setIsVisible] = useState(false);
-  const featuresRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          observer.disconnect();
         }
       },
-      { threshold: 0.2 }
+      {
+        threshold: 0.2, // Trigger when 20% of the cards are visible
+        rootMargin: '0px',
+      }
     );
 
-    if (featuresRef.current) {
-      observer.observe(featuresRef.current);
+    if (cardsRef.current) {
+      observer.observe(cardsRef.current);
     }
 
     return () => {
-      if (featuresRef.current) {
-        observer.unobserve(featuresRef.current);
+      if (cardsRef.current) {
+        observer.unobserve(cardsRef.current);
       }
     };
   }, []);
 
   return (
     <section
-      ref={featuresRef}
+      id="features-section"
       className="relative w-full bg-white py-24 overflow-hidden"
     >
       <div className="container mx-auto px-4 md:px-6">
         {/* Section Title */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 inline-block">
+          <h2 className="text-4xl font-bold text-gray-900 inline-block group cursor-default">
             Why DocuSeal
-            <div className="h-1 bg-[#3b0764] mt-2 rounded-full"></div>
+            <div className="relative mx-auto w-32 mt-3">
+              <div className="h-1.5 bg-gradient-to-r from-[#3b0764] via-[#6b21a8] to-[#3b0764] rounded-full shadow-lg shadow-purple-500/50 group-hover:shadow-purple-500/80 group-hover:scale-110 transition-all duration-300"></div>
+            </div>
           </h2>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_auto_1fr] items-center">
+        <div ref={cardsRef} className="grid gap-8 lg:grid-cols-[1fr_auto_1fr] items-center">
 
           {/* Left Column */}
           <div className="space-y-8">
