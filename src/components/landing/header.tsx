@@ -5,10 +5,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, PenTool } from 'lucide-react';
+import { Menu, PenTool, LogOut } from 'lucide-react';
+import { useSession, signOut } from '@/lib/auth-client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export function Header() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   return (
     <header className="sticky top-0 z-50 w-full bg-transparent">
@@ -53,14 +62,57 @@ export function Header() {
           </Link>
         </nav>
         <div className="flex items-center gap-4">
-          <Link href="/auth/signup">
-            <Button
-              variant="default"
-              className="hidden rounded-lg bg-purple-900 px-6 py-2 font-bold text-white transition-colors hover:bg-purple-950 md:block"
-            >
-              Get Started
-            </Button>
-          </Link>
+          {/* Show User Menu if logged in, otherwise show Get Started button */}
+          {session ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                  <Avatar className="h-11 w-11 border-2 border-purple-200">
+                    <AvatarImage
+                      src={session.user?.image || "/avatars/01.png"}
+                      alt={session.user?.name || "User"}
+                    />
+                    <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
+                      {session.user?.name
+                        ? session.user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                        : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end">
+                <div className="flex flex-col space-y-1 p-2">
+                  <p className="text-sm font-medium">
+                    {session.user?.name || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {session.user?.email}
+                  </p>
+                </div>
+                <DropdownMenuItem
+                  onClick={() => signOut()}
+                  className="text-red-600 focus:text-red-600 cursor-pointer"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/auth/signup">
+              <Button
+                variant="default"
+                className="hidden rounded-lg bg-purple-900 px-6 py-2 font-bold text-white transition-colors hover:bg-purple-950 md:block"
+              >
+                Get Started
+              </Button>
+            </Link>
+          )}
+
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -84,14 +136,24 @@ export function Header() {
                 >
                   About Us
                 </Link>
-                <Link href="/auth/signup">
+                {session ? (
                   <Button
+                    onClick={() => signOut()}
                     variant="default"
-                    className="w-full rounded-lg bg-purple-900 px-6 py-2 font-bold text-white transition-colors hover:bg-purple-950"
+                    className="w-full rounded-lg bg-red-600 px-6 py-2 font-bold text-white transition-colors hover:bg-red-700"
                   >
-                    Get Started
+                    Log out
                   </Button>
-                </Link>
+                ) : (
+                  <Link href="/auth/signup">
+                    <Button
+                      variant="default"
+                      className="w-full rounded-lg bg-purple-900 px-6 py-2 font-bold text-white transition-colors hover:bg-purple-950"
+                    >
+                      Get Started
+                    </Button>
+                  </Link>
+                )}
               </div>
             </SheetContent>
           </Sheet>
