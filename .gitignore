@@ -68,5 +68,5 @@ Thumbs.db
 .vercel
 
 # Local development
-docuseal/
+#docuseal/
 USER_FILTERING_IMPLEMENTATION.md

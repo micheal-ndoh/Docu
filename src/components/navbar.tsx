@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useSession, signOut } from "@/lib/auth-client";
+import { useSession } from "next-auth/react";
+import { federatedLogout } from "@/lib/federated-logout";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,10 +44,10 @@ export function Navbar() {
                       <AvatarFallback className="bg-muted">
                         {session.user?.name
                           ? session.user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
                           : "U"}
                       </AvatarFallback>
                     </Avatar>
@@ -64,8 +65,8 @@ export function Navbar() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => signOut()}
+                  <DropdownMenuItem
+                    onClick={() => federatedLogout()}
                     className="text-red-600 focus:text-red-600 dark:text-red-400"
                   >
                     <LogOut className="mr-2 h-4 w-4" />

@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useSession, signOut } from '@/lib/auth-client';
+import { useSession } from 'next-auth/react';
+import { federatedLogout } from '@/lib/federated-logout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
@@ -387,7 +388,7 @@ export default function SubmissionsPage() {
                       </p>
                     </div>
                     <DropdownMenuItem
-                      onClick={() => signOut()}
+                      onClick={() => federatedLogout()}
                       className="text-red-600 focus:text-red-600 cursor-pointer"
                     >
                       <LogOut className="mr-2 h-4 w-4" />

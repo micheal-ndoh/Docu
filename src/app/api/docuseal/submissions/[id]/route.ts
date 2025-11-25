@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
@@ -7,14 +8,14 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(request);
+  const session = await getServerSession(authOptions);
   if (!session) {
     console.warn('[api/docuseal/submissions/[id]] no session - proceeding as anonymous');
   }
 
   try {
     const { id } = await params;
-    
+
     // Fetch submission data
     const docusealResponse = await fetch(
       `${DOCUSEAL_API_BASE_URL}/submissions/${id}`,
@@ -56,7 +57,7 @@ export async function DELETE(
   const awaitedParams = await params;
   const id = awaitedParams.id;
   console.log('[api/docuseal/submissions/[id]] DELETE request received for ID:', id);
-  const session = await getServerSession(request);
+  const session = await getServerSession(authOptions);
   if (!session) {
     console.warn('[api/docuseal/submissions/[id]] Unauthorized: No session found.');
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

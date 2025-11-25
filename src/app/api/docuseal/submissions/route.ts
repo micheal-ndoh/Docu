@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient({
@@ -11,8 +12,8 @@ export const runtime = 'nodejs';
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
 export async function GET(request: Request) {
-  const session = await getServerSession(request);
-  
+  const session = await getServerSession(authOptions);
+
   // Require authentication to view submissions
   if (!session) {
     return NextResponse.json({ message: "Unauthorized - please sign in to view submissions" }, { status: 401 });
@@ -27,16 +28,15 @@ export async function GET(request: Request) {
     // Get user's submissions from database
     const userSubmissions = await prisma.submission.findMany({
       where: { userId },
-      include: { template: true },
     });
-    
+
     const submissionIds = userSubmissions.map(s => s.docusealId);
-    
+
     // If user has no submissions, return empty array
     if (submissionIds.length === 0) {
       return NextResponse.json({ data: [], pagination: { count: 0, next: null, prev: null } });
     }
-    
+
     const { searchParams } = new URL(request.url);
 
     // Build query parameters
@@ -107,11 +107,11 @@ export async function GET(request: Request) {
     }
 
     const data = await docusealResponse.json();
-    
+
     // Filter submissions to only include user's submissions
     let submissions = Array.isArray(data) ? data : (data.data || []);
     submissions = submissions.filter((sub: any) => submissionIds.includes(sub.id));
-    
+
     if (Array.isArray(data)) {
       return NextResponse.json({ data: submissions });
     }
@@ -138,7 +138,8 @@ export async function syncSubmissionStatus(submissionId: number, status: string)
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(request);
+  const session = await getServerSession(authOptions);
+
   // Accept API key either from server env or from an incoming header.
   const incomingApiKey = request.headers.get('x-auth-token') || request.headers.get('X-Auth-Token');
   const apiKey = process.env.DOCUSEAL_API_KEY ?? incomingApiKey ?? '';
@@ -150,7 +151,7 @@ export async function POST(request: Request) {
 
   const userEmail = session.user?.email;
   const userId = session.user?.id;
-  
+
   if (!userEmail || !userId) {
     return NextResponse.json({ message: "User email or ID not found in session" }, { status: 400 });
   }
@@ -244,7 +245,7 @@ export async function POST(request: Request) {
 
     const data = await docusealResponse.json();
     console.log('DocuSeal API success:', data);
-    
+
     // Save submission to database for tracking
     try {
       // DocuSeal returns an array of submitters, we need to extract submission_id
@@ -252,49 +253,24 @@ export async function POST(request: Request) {
       if (submitters.length > 0 && submitters[0].submission_id) {
         const submissionId = submitters[0].submission_id;
         const submitterEmail = submitters[0].email;
-        
-        // Check if template exists in our database, if not create it
-        let template = await prisma.template.findUnique({
-          where: { docusealId: body.template_id }
-        });
-        
-        if (!template) {
-          // Fetch template info from DocuSeal to get the name
-          const templateResp = await fetch(`${DOCUSEAL_API_BASE_URL}/templates/${body.template_id}`, {
-            headers: {
-              "X-Auth-Token": apiKey,
-              "Content-Type": "application/json",
-            },
-          });
-          const templateData = await templateResp.json();
-          
-          template = await prisma.template.create({
-            data: {
-              userId: userId,
-              docusealId: body.template_id,
-              name: templateData.name || 'Untitled Template',
-            },
-          });
-        }
-        
+
         // Create submission record
         await prisma.submission.create({
           data: {
             userId: userId,
             docusealId: submissionId,
-            templateId: template.id,
             status: submitters[0].status || 'pending',
             submitterEmail: submitterEmail,
           },
         });
-        
+
         console.log(`Saved submission ${submissionId} to database for user ${userId}`);
       }
     } catch (dbError) {
       console.error('Error saving submission to database:', dbError);
       // Don't fail the request if database save fails
     }
-    
+
     return NextResponse.json(data, { status: 201 });
   } catch (error: unknown) {
     console.error("Error creating DocuSeal submission:", error);

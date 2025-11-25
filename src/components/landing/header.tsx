@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, PenTool, LogOut } from 'lucide-react';
-import { useSession, signOut } from '@/lib/auth-client';
+import { useSession } from "next-auth/react";
+import { federatedLogout } from "@/lib/federated-logout";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -84,7 +85,7 @@ export function Header() {
                   </p>
                 </div>
                 <DropdownMenuItem
-                  onClick={() => signOut()}
+                  onClick={() => federatedLogout()}
                   className="text-red-600 focus:text-red-600 cursor-pointer"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -128,7 +129,7 @@ export function Header() {
                 </Link>
                 {session ? (
                   <Button
-                    onClick={() => signOut()}
+                    onClick={() => federatedLogout()}
                     variant="default"
                     className="w-full rounded-lg bg-red-600 px-6 py-2 font-bold text-white transition-colors hover:bg-red-700"
                   >
