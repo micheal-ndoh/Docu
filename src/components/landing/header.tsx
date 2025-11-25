@@ -41,16 +41,6 @@ export function Header() {
             Home
           </Link>
           <Link
-            href="/templates"
-            className={`transition-all border-b-4 ${pathname === '/templates'
-              ? 'text-purple-700 border-purple-700'
-              : 'text-black border-transparent hover:text-black hover:border-purple-700'
-              }`}
-            prefetch={false}
-          >
-            Templates
-          </Link>
-          <Link
             href="/about"
             className={`transition-all border-b-4 ${pathname === '/about'
               ? 'text-purple-700 border-purple-700'
