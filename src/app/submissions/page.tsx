@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useSession, signOut } from '@/lib/auth-client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -30,6 +32,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -41,7 +49,7 @@ import {
 } from '@/components/ui/select';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Loader2, Trash2, PlusCircle, Copy, Download, Eye, Send, Search, Filter, User, Calendar, LayoutGrid, Menu, Upload } from 'lucide-react';
+import { Loader2, Trash2, PlusCircle, Copy, Download, Eye, Send, Search, Filter, User, Calendar, LayoutGrid, Menu, Upload, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { SubmissionsSkeleton } from '@/components/loading-skeletons';
@@ -58,6 +66,7 @@ interface CreateSubmissionForm {
 
 export default function SubmissionsPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [submissions, setSubmissions] = useState<DocuSeal.Submission[]>([]);
   const [templates, setTemplates] = useState<{ id: number; name: string }[]>([]);
@@ -344,7 +353,7 @@ export default function SubmissionsPage() {
               </div>
             </div>
 
-            {/* Search and Templates Button */}
+            {/* Search, Templates Button, and User Menu */}
             <div className="flex items-center gap-4">
               <div className="relative w-80">
                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -360,6 +369,48 @@ export default function SubmissionsPage() {
                   Templates
                 </Button>
               </Link>
+
+              {/* User Menu */}
+              {session && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                      <Avatar className="h-11 w-11 border-2 border-purple-200">
+                        <AvatarImage
+                          src={session.user?.image || "/avatars/01.png"}
+                          alt={session.user?.name || "User"}
+                        />
+                        <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
+                          {session.user?.name
+                            ? session.user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                            : "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <div className="flex flex-col space-y-1 p-2">
+                      <p className="text-sm font-medium">
+                        {session.user?.name || "User"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {session.user?.email}
+                      </p>
+                    </div>
+                    <DropdownMenuItem
+                      onClick={() => signOut()}
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useSession, signOut } from "@/lib/auth-client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Loader2,
   FileText,
@@ -16,6 +18,8 @@ import {
   ExternalLink,
   FolderOpen,
   Plus,
+  LogOut,
+  User,
 } from "lucide-react";
 import { TemplatesSkeleton } from "@/components/loading-skeletons";
 import {
@@ -44,6 +48,7 @@ interface Template {
 }
 
 export default function TemplatesPage() {
+  const { data: session } = useSession();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -164,7 +169,7 @@ export default function TemplatesPage() {
               </div>
             </div>
 
-            {/* Search and Submissions Button */}
+            {/* Search, Submissions Button, and User Menu */}
             <div className="flex items-center gap-4">
               <div className="relative w-80">
                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -180,6 +185,48 @@ export default function TemplatesPage() {
                   Submissions
                 </Button>
               </Link>
+
+              {/* User Menu */}
+              {session && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                      <Avatar className="h-11 w-11 border-2 border-purple-200">
+                        <AvatarImage
+                          src={session.user?.image || "/avatars/01.png"}
+                          alt={session.user?.name || "User"}
+                        />
+                        <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
+                          {session.user?.name
+                            ? session.user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                            : "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <div className="flex flex-col space-y-1 p-2">
+                      <p className="text-sm font-medium">
+                        {session.user?.name || "User"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {session.user?.email}
+                      </p>
+                    </div>
+                    <DropdownMenuItem
+                      onClick={() => signOut()}
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>
