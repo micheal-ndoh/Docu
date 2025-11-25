@@ -1,23 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useSession, signOut } from "@/lib/auth-client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Loader2,
+  FileText,
+  Search,
+  Upload,
+  MoreVertical,
+  Edit,
+  Trash2,
+  ExternalLink,
+  FolderOpen,
+  Plus,
+  LogOut,
+  User,
+} from "lucide-react";
+import { TemplatesSkeleton } from "@/components/loading-skeletons";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,27 +37,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import {
-  Loader2,
-  Edit,
-  Trash2,
-  PlusCircle,
-  FileText,
-  ExternalLink,
-  Search,
-  Filter,
-  LayoutGrid,
-  Menu,
-} from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { TemplatesSkeleton } from "@/components/loading-skeletons";
 
 interface Template {
   id: string;
@@ -57,25 +47,14 @@ interface Template {
   updated_at: string;
 }
 
-interface CreateTemplateForm {
-  name: string;
-  file: FileList;
-}
-
 export default function TemplatesPage() {
+  const { data: session } = useSession();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "draft" | "published"
-  >("all");
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CreateTemplateForm>();
+  const [isUploading, setIsUploading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchTemplates();
@@ -89,7 +68,7 @@ export default function TemplatesPage() {
         throw new Error("Failed to fetch templates");
       }
       const data = await response.json();
-      setTemplates(data.data);
+      setTemplates(data.data || []);
     } catch (error: any) {
       toast.error("Error fetching templates", { description: error.message });
     } finally {
@@ -97,43 +76,41 @@ export default function TemplatesPage() {
     }
   };
 
-  const onCreateTemplate = async (data: CreateTemplateForm) => {
-    if (!data.file || data.file.length === 0) {
-      toast.error("Please select a file to upload.");
-      return;
-    }
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     const formData = new FormData();
-    formData.append("name", data.name);
-    formData.append("file", data.file[0]);
-    setCreating(true);
+    formData.append("name", file.name.replace(/\.[^/.]+$/, ""));
+    formData.append("file", file);
+
+    setIsUploading(true);
     try {
       const response = await fetch("/api/docuseal/templates", {
         method: "POST",
-        headers: {
-          // Content-Type is set automatically by the browser for FormData
-        },
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create template");
+        throw new Error("Failed to upload template");
       }
 
       const newTemplate = await response.json();
-      // Assuming the API returns the created template object
       setTemplates((prev) => [newTemplate, ...prev]);
-      toast.success("Template created successfully!");
-      reset();
+      toast.success("Template uploaded successfully!");
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error: any) {
-      toast.error("Error creating template", { description: error.message });
+      toast.error("Error uploading template", { description: error.message });
     } finally {
-      setCreating(false);
+      setIsUploading(false);
     }
   };
 
   const onDeleteTemplate = async (id: string) => {
-    // Optimistic update
     const originalTemplates = templates;
     setTemplates((prev) => prev.filter((t) => t.id !== id));
     toast.loading("Deleting template...", { id: "delete-template" });
@@ -155,297 +132,283 @@ export default function TemplatesPage() {
         description: error.message,
         id: "delete-template",
       });
-      setTemplates(originalTemplates); // Rollback on error
+      setTemplates(originalTemplates);
     }
+    setDeleteId(null);
   };
 
-  // Filter templates based on search and status
-  const filteredTemplates = templates.filter((template) => {
-    const matchesSearch = template.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || template.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredTemplates = templates.filter((template) =>
+    template.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return <TemplatesSkeleton />;
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sticky Navigation and Header */}
-      <div className="sticky top-16 z-40 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 transition-all duration-300">
+        <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {/* Navigation Boxes */}
-              <div className="flex items-center space-x-1">
-                {/* Document Templates Box */}
-                <Link href="/">
-                  <div className="flex items-center space-x-2 rounded-lg px-3 py-2 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                    <LayoutGrid className="h-4 w-4" />
-                  </div>
-                </Link>
-
-                {/* Submissions Box */}
-                <Link href="/submissions">
-                  <div className="flex items-center space-x-2 rounded-lg px-3 py-2 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                    <Menu className="h-4 w-4" />
-                  </div>
-                </Link>
-
-                {/* Templates Box (Active) */}
-                <div className="flex items-center space-x-2 rounded-lg px-3 py-2 bg-black text-white dark:bg-white dark:text-black">
-                  <FileText className="h-4 w-4" />
-                  <span className="text-xs font-medium">
-                    {filteredTemplates.length}
-                  </span>
-                </div>
+            {/* Logo and Title */}
+            <div className="flex items-center gap-6">
+              <Link href="/" className="flex items-center gap-2">
+                <svg className="h-10 w-10 text-[#3b0764]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17 3L21 7L9 19L5 20L6 16L17 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <path d="M15 5L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3 21C3 21 5 19 7 19C9 19 9 21 11 21C13 21 13 19 15 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="font-bold text-xl text-[#3b0764]">DocuSeal</span>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold text-[#1e0836]">Templates</h1>
+                <p className="text-gray-600 mt-1">
+                  Manage your document templates
+                </p>
               </div>
-
-              {/* Title */}
-              <h1 className="text-2xl font-bold">Templates</h1>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Templates</h1>
-              <p className="text-muted-foreground">
-                Create and manage document templates for your organization.
-              </p>
-            </div>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto">
-                  <PlusCircle className="mr-2 h-4 w-4" /> Create Template
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Template</DialogTitle>
-                </DialogHeader>
-                <form
-                  onSubmit={handleSubmit(onCreateTemplate)}
-                  className="space-y-4"
-                >
-                  <div>
-                    <Label htmlFor="name">Template Name</Label>
-                    <Input
-                      id="name"
-                      {...register("name", {
-                        required: "Template name is required.",
-                      })}
-                      disabled={creating}
-                    />
-                    {errors.name && (
-                      <p className="text-red-500 text-sm">
-                        {errors.name.message}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="file">Document</Label>
-                    <Input
-                      id="file"
-                      type="file"
-                      {...register("file", { required: "A file is required." })}
-                      disabled={creating}
-                      accept=".pdf,.docx,.xlsx,.jpeg,.png,.zip,.html"
-                    />
-                    {errors.file && (
-                      <p className="text-red-500 text-sm">
-                        {errors.file.message}
-                      </p>
-                    )}
-                  </div>
-                  <Button type="submit" disabled={creating}>
-                    {creating && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Create
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-
-        {/* Search and Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            {/* Search, Submissions Button, and User Menu */}
+            <div className="flex items-center gap-4">
+              <div className="relative w-80">
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <Input
                   placeholder="Search templates..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-11 border-gray-300 focus:border-purple-700 focus:ring-purple-700"
                 />
               </div>
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) =>
-                    setStatusFilter(
-                      e.target.value as "all" | "draft" | "published"
-                    )
-                  }
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="all">All Status</option>
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                </select>
+              <Link href="/submissions">
+                <Button className="bg-[#3b0764] hover:bg-[#1e0836] text-white font-semibold px-6 h-11">
+                  Submissions
+                </Button>
+              </Link>
+
+              {/* User Menu */}
+              {session && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                      <Avatar className="h-11 w-11 border-2 border-purple-200">
+                        <AvatarImage
+                          src={session.user?.image || "/avatars/01.png"}
+                          alt={session.user?.name || "User"}
+                        />
+                        <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
+                          {session.user?.name
+                            ? session.user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                            : "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <div className="flex flex-col space-y-1 p-2">
+                      <p className="text-sm font-medium">
+                        {session.user?.name || "User"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {session.user?.email}
+                      </p>
+                    </div>
+                    <DropdownMenuItem
+                      onClick={() => signOut()}
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-12">
+
+        {/* Templates Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Upload Card - Smaller */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="group relative rounded-2xl border-4 border-dashed border-gray-300 hover:border-purple-500 bg-white hover:bg-purple-50 transition-all duration-300 cursor-pointer overflow-hidden max-w-[240px] mx-auto sm:mx-0"
+            style={{ aspectRatio: '3/4' }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileUpload}
+              accept=".pdf,.docx,.xlsx,.jpeg,.png,.zip,.html"
+              disabled={isUploading}
+            />
+
+            {/* Folder Tab */}
+            <div className="absolute top-0 left-5 w-18 h-7 bg-purple-200 rounded-t-lg border-4 border-dashed border-gray-300 group-hover:border-purple-500 border-b-0"></div>
+
+            {/* Main Content */}
+            <div className="h-full flex flex-col items-center justify-center p-5 pt-10">
+              {isUploading ? (
+                <Loader2 className="h-12 w-12 text-purple-600 animate-spin" />
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mb-3 group-hover:bg-purple-200 transition-colors">
+                    <Upload className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <p className="text-base font-semibold text-[#1e0836] group-hover:text-purple-700 transition-colors text-center">
+                    Upload Template
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1.5 text-center">
+                    Click to browse
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Template Cards */}
+          {filteredTemplates.map((template) => (
+            <div
+              key={template.id}
+              className="group relative rounded-2xl bg-white border-2 border-gray-200 hover:border-purple-500 hover:shadow-xl transition-all duration-300 overflow-hidden"
+              style={{ aspectRatio: '3/4' }}
+            >
+              {/* Folder Tab */}
+              <div className="absolute top-0 left-6 w-20 h-8 bg-purple-300 rounded-t-lg border-2 border-gray-200 group-hover:border-purple-500 border-b-0"></div>
+
+              {/* Document Preview Area */}
+              <div className="h-2/3 bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center relative pt-4">
+                <FolderOpen className="h-24 w-24 text-purple-400 group-hover:text-purple-600 transition-colors" />
+
+                {/* Status Badge */}
+                <div className="absolute top-3 right-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${template.status === "published"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-700"
+                      }`}
+                  >
+                    {template.status}
+                  </span>
+                </div>
+
+                {/* Actions Menu */}
+                <div className="absolute top-3 left-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-2 rounded-lg bg-white/80 hover:bg-white shadow-sm transition-colors">
+                        <MoreVertical className="h-4 w-4 text-gray-600" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/templates/${template.id}/edit`}
+                          className="flex items-center cursor-pointer"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={`/templates/${template.id}`}
+                          className="flex items-center cursor-pointer"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          View
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setDeleteId(template.id)}
+                        className="text-red-600 focus:text-red-600 cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              {/* Template Info */}
+              <div className="h-1/3 p-4 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-semibold text-gray-900 truncate group-hover:text-purple-700 transition-colors">
+                    {template.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {new Date(template.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                <div className="flex items-center text-xs text-gray-400">
+                  <FileText className="h-3 w-3 mr-1" />
+                  ID: {String(template.id).substring(0, 8)}...
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
 
-        {/* Templates List */}
-        {filteredTemplates.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No templates found</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                {templates.length === 0
-                  ? "Get started by creating your first template."
-                  : "Try adjusting your search or filter criteria."}
-              </p>
-              {/* This button is redundant as it's in the header */}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Name</TableHead>
-                    <TableHead className="w-[15%]">Status</TableHead>
-                    <TableHead className="w-[20%]">Created</TableHead>
-                    <TableHead className="w-[25%] text-right">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTemplates.map((template) => (
-                    <TableRow key={template.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/50">
-                            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div>
-                            <div className="font-medium">{template.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              ID: {template.id}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            template.status === "published"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className={
-                            template.status === "published"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-400"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                          }
-                        >
-                          {template.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(template.created_at).toLocaleDateString(
-                          "en-US",
-                          {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          }
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end space-x-2">
-                          <Link href={`/templates/${template.id}/edit`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Edit template</span>
-                            </Button>
-                          </Link>
-                          <Link href={`/templates/${template.id}`}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              <span className="sr-only">View template</span>
-                            </Button>
-                          </Link>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Delete template</span>
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Are you absolutely sure?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will
-                                  permanently delete your template and remove
-                                  all associated data from our servers.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => onDeleteTemplate(template.id)}
-                                  className="bg-red-600 hover:bg-red-700 text-white"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        {/* Empty State */}
+        {filteredTemplates.length === 0 && templates.length > 0 && (
+          <div className="text-center py-12">
+            <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No templates found
+            </h3>
+            <p className="text-gray-600">
+              Try adjusting your search criteria
+            </p>
+          </div>
+        )}
+
+        {filteredTemplates.length === 0 && templates.length === 0 && (
+          <div className="text-center py-12">
+            <FolderOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-[#1e0836] mb-2">
+              No templates yet
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Get started by uploading your first template
+            </p>
+          </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              template and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && onDeleteTemplate(deleteId)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

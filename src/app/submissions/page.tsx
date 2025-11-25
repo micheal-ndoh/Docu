@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useSession, signOut } from '@/lib/auth-client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -30,6 +32,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -41,7 +49,7 @@ import {
 } from '@/components/ui/select';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Loader2, Trash2, PlusCircle, Copy, Download, Eye, Send, Search, Filter, User, Calendar, LayoutGrid, Menu, Upload } from 'lucide-react';
+import { Loader2, Trash2, PlusCircle, Copy, Download, Eye, Send, Search, Filter, User, Calendar, LayoutGrid, Menu, Upload, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { SubmissionsSkeleton } from '@/components/loading-skeletons';
@@ -58,6 +66,7 @@ interface CreateSubmissionForm {
 
 export default function SubmissionsPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [submissions, setSubmissions] = useState<DocuSeal.Submission[]>([]);
   const [templates, setTemplates] = useState<{ id: number; name: string }[]>([]);
@@ -84,8 +93,7 @@ export default function SubmissionsPage() {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/docuseal/submissions?status=${
-          filterStatus === 'ALL' ? '' : filterStatus
+        `/api/docuseal/submissions?status=${filterStatus === 'ALL' ? '' : filterStatus
         }`
       );
       if (!response.ok) {
@@ -175,7 +183,7 @@ export default function SubmissionsPage() {
       // DocuSeal API returns an array of submitters
       const submitters = Array.isArray(responseData) ? responseData : [responseData];
       const submissionId = submitters[0]?.submission_id;
-      
+
       if (submissionId) {
         toast.success('Submission created! Redirecting to signing page...', {
           description: 'You can sign the document now or copy the link to share.',
@@ -322,69 +330,150 @@ export default function SubmissionsPage() {
     return <SubmissionsSkeleton />;
   }
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sticky Navigation and Header */}
-      <div className="sticky top-16 z-40 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 transition-all duration-300">
+        <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {/* Navigation Boxes */}
-              <div className="flex items-center space-x-1">
-                {/* Document Templates Box */}
-                <Link href="/">
-                  <div className="flex items-center space-x-2 rounded-lg px-3 py-2 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700 cursor-pointer transition-colors">
-                    <LayoutGrid className="h-4 w-4" />
-                  </div>
-                </Link>
-                
-                {/* Submissions Box (Active) */}
-                <div className="flex items-center space-x-2 rounded-lg px-3 py-2 bg-black text-white dark:bg-white dark:text-black">
-                  <Menu className="h-4 w-4" />
-                  <span className="text-xs font-medium">{filteredSubmissions.length}</span>
-                </div>
+            {/* Logo and Title */}
+            <div className="flex items-center gap-6">
+              <Link href="/" className="flex items-center gap-2">
+                <svg className="h-10 w-10 text-[#3b0764]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17 3L21 7L9 19L5 20L6 16L17 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                  <path d="M15 5L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M3 21C3 21 5 19 7 19C9 19 9 21 11 21C13 21 13 19 15 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="font-bold text-xl text-[#3b0764]">DocuSeal</span>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold text-[#1e0836]">Submissions</h1>
+                <p className="text-gray-600 mt-1">
+                  Track and manage document submissions
+                </p>
               </div>
-              
-              {/* Title */}
-              <h1 className="text-2xl font-bold">Submissions</h1>
             </div>
-            <div className="flex items-center space-x-3">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={onUpload}
-                className="hidden"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.bmp"
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                {isUploading ? 'UPLOADING...' : 'UPLOAD'}
-              </Button>
+
+            {/* Search, Templates Button, and User Menu */}
+            <div className="flex items-center gap-4">
+              <div className="relative w-80">
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search submissions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-11 border-gray-300 focus:border-purple-700 focus:ring-purple-700"
+                />
+              </div>
+              <Link href="/templates">
+                <Button className="bg-[#3b0764] hover:bg-[#1e0836] text-white font-semibold px-6 h-11">
+                  Templates
+                </Button>
+              </Link>
+
+              {/* User Menu */}
+              {session && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                      <Avatar className="h-11 w-11 border-2 border-purple-200">
+                        <AvatarImage
+                          src={session.user?.image || "/avatars/01.png"}
+                          alt={session.user?.name || "User"}
+                        />
+                        <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
+                          {session.user?.name
+                            ? session.user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                            : "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end">
+                    <div className="flex flex-col space-y-1 p-2">
+                      <p className="text-sm font-medium">
+                        {session.user?.name || "User"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {session.user?.email}
+                      </p>
+                    </div>
+                    <DropdownMenuItem
+                      onClick={() => signOut()}
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-muted-foreground">
-                Track and manage document submissions and signatures.
-              </p>
+      <div className="container mx-auto px-4 py-12">
+        {/* Header with Create Button */}
+        <div className="mb-8 flex items-center justify-between">
+          {/* Filter Section with Decoration */}
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border-2 border-purple-200 shadow-sm">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-600 flex items-center justify-center">
+                  <Filter className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Label className="text-sm font-semibold text-purple-900">Filter by:</Label>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-[180px] border-2 border-purple-300 bg-white focus:border-purple-600 focus:ring-purple-600 font-medium">
+                      <SelectValue placeholder="Filter by Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL" className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                          All Status
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="SENT" className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          Sent
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="OPENED" className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                          Opened
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="COMPLETED" className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          Completed
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="DECLINED" className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                          Declined
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Create Submission Dialog */}
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto">
+              <Button className="bg-[#3b0764] hover:bg-[#1e0836] text-white font-semibold">
                 <PlusCircle className="mr-2 h-4 w-4" /> Create Submission
               </Button>
             </DialogTrigger>
@@ -484,7 +573,7 @@ export default function SubmissionsPage() {
                 {/* Email removed - using in-app signing instead */}
                 {/* Users can copy the signing link from the submissions list to share manually */}
 
-                <Button type="submit" disabled={creating}>
+                <Button type="submit" disabled={creating} className="bg-[#3b0764] hover:bg-[#1e0836]">
                   {creating && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
@@ -494,57 +583,20 @@ export default function SubmissionsPage() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
 
-      {/* Search and Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search submissions..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filter by Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Status</SelectItem>
-                  <SelectItem value="SENT">Sent</SelectItem>
-                  <SelectItem value="OPENED">Opened</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                  <SelectItem value="DECLINED">Declined</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Submissions List */}
-      {filteredSubmissions.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Send className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No submissions found</h3>
-            <p className="text-muted-foreground text-center mb-4">
+        {/* Submissions List */}
+        {filteredSubmissions.length === 0 ? (
+          <div className="bg-white rounded-2xl border-2 border-gray-200 p-12 text-center">
+            <Send className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-[#1e0836] mb-2">No submissions found</h3>
+            <p className="text-gray-600">
               {submissions.length === 0
                 ? 'Get started by creating your first submission.'
                 : 'Try adjusting your search or filter criteria.'}
             </p>
-            {/* The button to create a submission is already in the header, so this might be redundant */}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="p-0">
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -719,10 +771,9 @@ export default function SubmissionsPage() {
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
       </div>
-    </div>
+    </div >
   );
 }
