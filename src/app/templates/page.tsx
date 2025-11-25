@@ -185,14 +185,14 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-12">
 
         {/* Templates Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {/* Upload Card - Smaller */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="group relative rounded-2xl border-4 border-dashed border-gray-300 hover:border-purple-500 bg-white hover:bg-purple-50 transition-all duration-300 cursor-pointer overflow-hidden max-w-[200px] mx-auto sm:mx-0"
+            className="group relative rounded-2xl border-4 border-dashed border-gray-300 hover:border-purple-500 bg-white hover:bg-purple-50 transition-all duration-300 cursor-pointer overflow-hidden max-w-[240px] mx-auto sm:mx-0"
             style={{ aspectRatio: '3/4' }}
           >
             <input
@@ -205,21 +205,21 @@ export default function TemplatesPage() {
             />
 
             {/* Folder Tab */}
-            <div className="absolute top-0 left-4 w-16 h-6 bg-purple-200 rounded-t-lg border-4 border-dashed border-gray-300 group-hover:border-purple-500 border-b-0"></div>
+            <div className="absolute top-0 left-5 w-18 h-7 bg-purple-200 rounded-t-lg border-4 border-dashed border-gray-300 group-hover:border-purple-500 border-b-0"></div>
 
             {/* Main Content */}
-            <div className="h-full flex flex-col items-center justify-center p-4 pt-8">
+            <div className="h-full flex flex-col items-center justify-center p-5 pt-10">
               {isUploading ? (
-                <Loader2 className="h-10 w-10 text-purple-600 animate-spin" />
+                <Loader2 className="h-12 w-12 text-purple-600 animate-spin" />
               ) : (
                 <>
-                  <div className="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center mb-3 group-hover:bg-purple-200 transition-colors">
-                    <Upload className="h-7 w-7 text-purple-600" />
+                  <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mb-3 group-hover:bg-purple-200 transition-colors">
+                    <Upload className="h-8 w-8 text-purple-600" />
                   </div>
-                  <p className="text-sm font-semibold text-[#1e0836] group-hover:text-purple-700 transition-colors text-center">
+                  <p className="text-base font-semibold text-[#1e0836] group-hover:text-purple-700 transition-colors text-center">
                     Upload Template
                   </p>
-                  <p className="text-xs text-gray-500 mt-1 text-center">
+                  <p className="text-xs text-gray-500 mt-1.5 text-center">
                     Click to browse
                   </p>
                 </>
