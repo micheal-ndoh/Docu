@@ -49,35 +49,18 @@ model User {
   emailVerified Boolean      @default(false)
   accounts      Account[]
   sessions      Session[]
-  templates     Template[]
   submissions   Submission[]
-}
-
-model Template {
-  id           String       @id @default(cuid())
-  userId       String
-  docusealId   Int          @unique // DocuSeal template ID
-  name         String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  submissions  Submission[]
-
-  @@index([userId])
-  @@index([docusealId])
 }
 
 model Submission {
   id             String   @id @default(cuid())
   userId         String
   docusealId     Int      @unique // DocuSeal submission ID
-  templateId     String
   status         String   @default("pending")
   submitterEmail String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template       Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([docusealId])
