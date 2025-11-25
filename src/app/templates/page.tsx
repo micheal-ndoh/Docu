@@ -355,7 +355,7 @@ export default function TemplatesPage() {
                 </div>
                 <div className="flex items-center text-xs text-gray-400">
                   <FileText className="h-3 w-3 mr-1" />
-                  ID: {template.id.substring(0, 8)}...
+                  ID: {String(template.id).substring(0, 8)}...
                 </div>
               </div>
             </div>
