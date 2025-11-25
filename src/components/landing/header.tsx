@@ -1,11 +1,15 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, PenTool } from 'lucide-react';
 
 export function Header() {
+  const pathname = usePathname();
+
   return (
     <header className="sticky top-0 z-50 w-full bg-transparent">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
@@ -16,26 +20,33 @@ export function Header() {
             <path d="M15 5L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M3 21C3 21 5 19 7 19C9 19 9 21 11 21C13 21 13 19 15 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span className="font-semibold text-white">DocuSeal</span>
+          <span className="font-semibold text-white">OgilZee</span>
         </Link>
         <nav className="hidden items-center gap-6 text-base font-bold md:flex">
           <Link
-            href="#"
-            className="text-black transition-colors hover:text-purple-700"
+            href="/"
+            className={`transition-colors ${pathname === '/' ? 'text-purple-700' : 'text-black hover:text-purple-700'
+              }`}
             prefetch={false}
           >
             Home
           </Link>
           <Link
             href="/templates"
-            className="text-black transition-all hover:text-black border-b-4 border-transparent hover:border-purple-700"
+            className={`transition-all border-b-4 ${pathname === '/templates'
+                ? 'text-purple-700 border-purple-700'
+                : 'text-black border-transparent hover:text-black hover:border-purple-700'
+              }`}
             prefetch={false}
           >
             Templates
           </Link>
           <Link
-            href="#"
-            className="text-black transition-all hover:text-black border-b-4 border-transparent hover:border-purple-700"
+            href="/about"
+            className={`transition-all border-b-4 ${pathname === '/about'
+                ? 'text-purple-700 border-purple-700'
+                : 'text-black border-transparent hover:text-black hover:border-purple-700'
+              }`}
             prefetch={false}
           >
             About Us
