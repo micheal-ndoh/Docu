@@ -82,7 +82,7 @@ export default function SignUpPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-6xl overflow-hidden rounded-3xl shadow-2xl flex bg-white">
         {/* Left Side - Purple Gradient with Logo */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0f0520] via-[#1e0836] to-[#3b0764] items-center justify-center p-12 relative overflow-hidden">
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0f0520] via-[#1e0836] to-[#3b0764] items-center justify-center p-12 relative overflow-hidden rounded-l-3xl">
           {/* Decorative elements */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500 rounded-full blur-3xl"></div>
@@ -98,13 +98,18 @@ export default function SignUpPage() {
                 <path d="M3 21C3 21 5 19 7 19C9 19 9 21 11 21C13 21 13 19 15 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <h1 className="text-5xl font-bold text-white mb-4">OgilZee</h1>
+            <h1 className="text-5xl font-bold text-white mb-4">DocuSeal</h1>
             <p className="text-xl text-purple-200">Sign Your Documents with Confidence</p>
           </div>
+
+          {/* Zigzag Divider */}
+          <svg className="absolute right-0 top-0 h-full w-8" viewBox="0 0 32 800" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 0 L16 20 L0 40 L16 60 L0 80 L16 100 L0 120 L16 140 L0 160 L16 180 L0 200 L16 220 L0 240 L16 260 L0 280 L16 300 L0 320 L16 340 L0 360 L16 380 L0 400 L16 420 L0 440 L16 460 L0 480 L16 500 L0 520 L16 540 L0 560 L16 580 L0 600 L16 620 L0 640 L16 660 L0 680 L16 700 L0 720 L16 740 L0 760 L16 780 L0 800 L32 800 L32 0 Z" fill="white" />
+          </svg>
         </div>
 
         {/* Right Side - Form */}
-        <div className="flex-1 flex items-center justify-center p-8 lg:p-12">
+        <div className="flex-1 flex items-center justify-center p-8 lg:p-12 rounded-r-3xl">
           <div className="w-full max-w-md">
             {/* Back Button */}
             <Link href="/" className="inline-flex items-center text-gray-600 hover:text-purple-700 mb-8 transition-colors">
