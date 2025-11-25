@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { signInSchema, type SignInFormData } from "@/lib/validations";
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
   const [error, setError] = useState("");
@@ -24,6 +25,8 @@ export default function SignInPage() {
     resolver: zodResolver(signInSchema),
   });
 
+  const router = useRouter();
+
   const onSubmit = async (data: SignInFormData) => {
     setError("");
 
@@ -37,8 +40,9 @@ export default function SignInPage() {
         email: data.email,
         password: data.password,
       });
-      setAttempts(0);
-      window.location.href = "/";
+      
+      // If signIn is successful, redirect to submissions page
+      router.push('/submissions');
     } catch (error: any) {
       setAttempts(prev => prev + 1);
       const errorMessage = (error.message || "").toLowerCase();

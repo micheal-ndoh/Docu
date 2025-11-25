@@ -49,12 +49,14 @@ export default function SignUpPage() {
       });
 
       setAttempts(0);
+      // Sign in after successful sign up
       await signIn.email({
         email: data.email,
         password: data.password,
       });
 
-      router.push("/");
+      // Redirect to submissions page after successful sign in
+      router.push("/submissions");
     } catch (err: any) {
       setAttempts(prev => prev + 1);
       const errorMessage = err.message?.toLowerCase() || "";

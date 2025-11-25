@@ -335,25 +335,15 @@ export default function SubmissionsPage() {
       <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 transition-all duration-300">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            {/* Logo and Title */}
-            <div className="flex items-center gap-6">
-              <Link href="/" className="flex items-center gap-2">
-                <svg className="h-10 w-10 text-[#3b0764]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M17 3L21 7L9 19L5 20L6 16L17 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                  <path d="M15 5L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M3 21C3 21 5 19 7 19C9 19 9 21 11 21C13 21 13 19 15 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="font-bold text-xl text-[#3b0764]">DocuSeal</span>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold text-[#1e0836]">Submissions</h1>
-                <p className="text-gray-600 mt-1">
-                  Track and manage document submissions
-                </p>
-              </div>
+            {/* Title */}
+            <div>
+              <h1 className="text-3xl font-bold text-[#1e0836]">Submissions</h1>
+              <p className="text-gray-600 mt-1">
+                Track and manage document submissions
+              </p>
             </div>
 
-            {/* Search, Templates Button, and User Menu */}
+            {/* Search and User Menu */}
             <div className="flex items-center gap-4">
               <div className="relative w-80">
                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -364,11 +354,6 @@ export default function SubmissionsPage() {
                   className="pl-10 h-11 border-gray-300 focus:border-purple-700 focus:ring-purple-700"
                 />
               </div>
-              <Link href="/templates">
-                <Button className="bg-[#3b0764] hover:bg-[#1e0836] text-white font-semibold px-6 h-11">
-                  Templates
-                </Button>
-              </Link>
 
               {/* User Menu */}
               {session && (
