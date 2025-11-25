@@ -221,7 +221,7 @@ export default function SignUpPage() {
               {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300" />
+                  <hr className="w-full border-0 h-[2px] bg-gray-300 rounded-full" />
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="bg-white px-4 text-gray-500">or</span>
