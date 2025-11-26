@@ -59,3 +59,21 @@ sudo -- sh -c 'printf "127.0.0.1\tkeycloak\n" >> /etc/hosts'
 ```
 
 - Client secret and other sensitive values should be set via `.env` and not committed to source.
+
+**Environment variables**
+
+- **`DOCUSEAL_API_KEY`**: API key for your self-hosted DocuSeal instance. Set this in your local `.env` (see `.env.example`) and do NOT commit it to the repository.
+- **`DOCUSEAL_URL`**: Base URL for your DocuSeal service. In the Docker Compose setup the service is reachable at `http://docuseal:3000` from other containers; for browser access use `http://localhost:8081`.
+- **`KEYCLOAK_ISSUER`**: URL of your Keycloak realm (example: `http://keycloak:8080/realms/docuseal`).
+
+After adding or changing values in `.env` you must restart the Next.js process so it picks up the updated environment variables. Example (using Docker Compose):
+
+```bash
+# restart only Next.js service
+docker compose restart nextjs-app
+
+# or rebuild and recreate (if you changed build-time behavior)
+docker compose up -d --build nextjs-app
+```
+
+Security reminder: keep API keys and secrets in environment variables or a secret manager; never commit them into the repository.
