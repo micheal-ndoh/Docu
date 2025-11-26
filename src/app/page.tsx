@@ -17,7 +17,18 @@ export default function HomePage() {
 
         <div className="pt-8">
           <Button
-            onClick={() => signIn('keycloak', { callbackUrl: '/submissions' })}
+            onClick={async () => {
+              console.log('Sign in button clicked');
+              try {
+                const result = await signIn('keycloak', {
+                  callbackUrl: '/submissions',
+                  redirect: true
+                });
+                console.log('Sign in result:', result);
+              } catch (error) {
+                console.error('Sign in error:', error);
+              }
+            }}
             size="lg"
             className="bg-white text-[#1e0836] hover:bg-white/90"
           >
