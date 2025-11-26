@@ -68,7 +68,7 @@ export function Hero() {
           <div className="flex flex-1 flex-col items-center justify-center px-4 text-center pb-32">
             <div className="max-w-4xl">
               <h1 className="mb-8 text-6xl font-bold tracking-tight text-white md:text-7xl leading-tight">
-                Sign Your Documents with Confidence
+                Document signing
               </h1>
               <p className="mb-0 text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
                 From upload to e-signature, Docu provides a seamless and secure workflow for all your important documents. Get started in seconds.

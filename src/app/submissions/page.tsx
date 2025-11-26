@@ -50,7 +50,7 @@ import {
 } from '@/components/ui/select';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Loader2, Trash2, PlusCircle, Copy, Download, Eye, Send, Search, Filter, User, Calendar, LayoutGrid, Menu, Upload, LogOut } from 'lucide-react';
+import { Loader2, Trash2, PlusCircle, Copy, Download, Eye, Send, Search, Filter, User, Calendar, LayoutGrid, Menu, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { SubmissionsSkeleton } from '@/components/loading-skeletons';
@@ -68,12 +68,10 @@ interface CreateSubmissionForm {
 export default function SubmissionsPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [submissions, setSubmissions] = useState<DocuSeal.Submission[]>([]);
   const [templates, setTemplates] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -81,7 +79,7 @@ export default function SubmissionsPage() {
     useForm<CreateSubmissionForm>({
       defaultValues: {
         submitters: [{ email: '', name: '', role: '' }],
-        send_email: false, // Use in-app signing instead of email
+        send_email: true, // Send email to recipients
       },
     });
 
@@ -186,13 +184,14 @@ export default function SubmissionsPage() {
       const submissionId = submitters[0]?.submission_id;
 
       if (submissionId) {
-        toast.success('Submission created! Redirecting to signing page...', {
-          description: 'You can sign the document now or copy the link to share.',
+        toast.success('Submission created successfully!', {
+          description: 'An email has been sent to the recipient with the signing link.',
         });
-        // Small delay to ensure submission is fully created
-        setTimeout(() => {
-          router.push(`/submissions/${submissionId}/sign`);
-        }, 500);
+        reset();
+        // Small delay to ensure database has been updated
+        setTimeout(async () => {
+          await fetchSubmissions();
+        }, 1000);
       } else {
         // Fallback if no submission ID
         toast.success('Submission created successfully!');
@@ -237,41 +236,7 @@ export default function SubmissionsPage() {
     }
   };
 
-  const onUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
-    setIsUploading(true);
-    const toastId = toast.loading('Uploading document and creating template...');
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/docuseal/templates/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Upload failed');
-      }
-
-      const newTemplate = await res.json();
-      toast.success('Template created successfully! Redirecting to editor...', { id: toastId });
-
-      router.push(`/templates/${newTemplate.id}/edit`);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      toast.error(`Upload failed: ${message}`, { id: toastId });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
 
   const onResendInvite = async (submitterId: number) => {
     toast.loading('Resending invite...', { id: `resend-${submitterId}` });
