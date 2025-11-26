@@ -188,7 +188,10 @@ export default function SubmissionsPage() {
           description: 'An email has been sent to the recipient with the signing link.',
         });
         reset();
-        await fetchSubmissions();
+        // Small delay to ensure database has been updated
+        setTimeout(async () => {
+          await fetchSubmissions();
+        }, 1000);
       } else {
         // Fallback if no submission ID
         toast.success('Submission created successfully!');
