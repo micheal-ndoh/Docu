@@ -28,21 +28,20 @@ export const authOptions: NextAuthOptions = {
       // Send properties to the client
       if (session.user) {
         session.idToken = token.idToken as string;
-        session.user.id = token.sub!;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
 
-        // Sync user to database
+        // Sync user to database and get the actual database user ID
         const keycloakId = token.keycloakId as string;
         if (keycloakId) {
-          const existingUser = await db.user.findFirst({
+          let existingUser = await db.user.findFirst({
             where: { email: token.email as string },
           });
 
           if (!existingUser) {
-            await db.user.create({
+            // Create new user - let Prisma generate the CUID
+            existingUser = await db.user.create({
               data: {
-                id: token.sub!,
                 email: token.email as string,
                 name: token.name as string,
                 emailVerified: null,
@@ -50,6 +49,12 @@ export const authOptions: NextAuthOptions = {
               },
             });
           }
+
+          // Use the actual database user ID, not the Keycloak ID
+          session.user.id = existingUser.id;
+        } else {
+          // Fallback to token.sub if no keycloakId (shouldn't happen normally)
+          session.user.id = token.sub!;
         }
       }
       return session;

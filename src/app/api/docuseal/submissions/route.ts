@@ -250,12 +250,16 @@ export async function POST(request: Request) {
     try {
       // DocuSeal returns an array of submitters, we need to extract submission_id
       const submitters = Array.isArray(data) ? data : [data];
+      console.log('Attempting to save to database. Data structure:', JSON.stringify(submitters, null, 2));
+
       if (submitters.length > 0 && submitters[0].submission_id) {
         const submissionId = submitters[0].submission_id;
         const submitterEmail = submitters[0].email;
 
+        console.log(`Saving submission ${submissionId} for user ${userId}`);
+
         // Create submission record
-        await prisma.submission.create({
+        const savedSubmission = await prisma.submission.create({
           data: {
             userId: userId,
             docusealId: submissionId,
@@ -264,10 +268,16 @@ export async function POST(request: Request) {
           },
         });
 
-        console.log(`Saved submission ${submissionId} to database for user ${userId}`);
+        console.log(`✅ Successfully saved submission ${submissionId} to database:`, savedSubmission);
+      } else {
+        console.error('❌ No submission_id found in response data:', submitters);
       }
     } catch (dbError) {
-      console.error('Error saving submission to database:', dbError);
+      console.error('❌ Error saving submission to database:');
+      console.error('Error details:', dbError);
+      console.error('Error name:', (dbError as Error).name);
+      console.error('Error message:', (dbError as Error).message);
+      console.error('Full error:', JSON.stringify(dbError, null, 2));
       // Don't fail the request if database save fails
     }
 
