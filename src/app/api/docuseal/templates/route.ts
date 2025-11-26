@@ -57,7 +57,9 @@ export async function GET(request: Request) {
             params.append("q", searchParams.get("q")!);
         }
 
-        const url = `${DOCUSEAL_API_BASE_URL}/templates?${params.toString()}`;
+        // Use /api/templates for self-hosted, /templates for hosted
+        const apiPath = DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'templates' : 'api/templates';
+        const url = `${DOCUSEAL_API_BASE_URL}/${apiPath}?${params.toString()}`;
 
         console.log('Fetching templates from DocuSeal:', url);
 
@@ -70,11 +72,26 @@ export async function GET(request: Request) {
         });
 
         if (!docusealResponse.ok) {
-            const errorData = await docusealResponse.json();
-            console.error('DocuSeal API error:', docusealResponse.status, errorData);
-            return NextResponse.json(errorData, {
-                status: docusealResponse.status,
-            });
+            const errorText = await docusealResponse.text();
+            console.error('DocuSeal API error:', docusealResponse.status, errorText);
+            return NextResponse.json(
+                { message: `DocuSeal API error: ${docusealResponse.status}`, details: errorText },
+                { status: docusealResponse.status }
+            );
+        }
+
+        // Check if response is JSON
+        const contentType = docusealResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const responseText = await docusealResponse.text();
+            console.error('DocuSeal API returned non-JSON response:', responseText.substring(0, 200));
+            return NextResponse.json(
+                {
+                    message: "DocuSeal API returned HTML instead of JSON - likely redirecting to setup/login page",
+                    details: "Please ensure your self-hosted DocuSeal instance is fully set up and the API key is correct"
+                },
+                { status: 502 } // Bad Gateway
+            );
         }
 
         const data = await docusealResponse.json();

@@ -11,6 +11,9 @@ export const runtime = 'nodejs';
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
+// Use /api/submissions for self-hosted, /submissions for hosted
+const getSubmissionsApiPath = () => DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'submissions' : 'api/submissions';
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
 
@@ -90,7 +93,7 @@ export async function GET(request: Request) {
       params.append("archived", searchParams.get("archived")!);
     }
 
-    const url = `${DOCUSEAL_API_BASE_URL}/submissions?${params.toString()}`;
+    const url = `${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}?${params.toString()}`;
 
     const docusealResponse = await fetch(url, {
       headers: {
@@ -162,7 +165,7 @@ export async function POST(request: Request) {
     // If multipart/form-data (file uploads), forward the raw request body and content-type header
     if (contentType.startsWith('multipart/form-data')) {
       const rawBody = await request.arrayBuffer();
-      const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/submissions`, {
+      const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}`, {
         method: 'POST',
         headers: {
           'X-Auth-Token': apiKey,
@@ -226,7 +229,7 @@ export async function POST(request: Request) {
 
     console.log('Sending to DocuSeal API:', JSON.stringify(body, null, 2));
 
-    const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/submissions`, {
+    const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}`, {
       method: 'POST',
       headers: {
         'X-Auth-Token': apiKey,

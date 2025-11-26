@@ -70,8 +70,10 @@ After adding or changing values in `.env` you must restart the Next.js process s
 
 ```bash
 # restart only Next.js service
-docker compose restart nextjs-app
+ docker compose up -d nextjs-app 
+```
 
+```bash
 # or rebuild and recreate (if you changed build-time behavior)
 docker compose up -d --build nextjs-app
 ```

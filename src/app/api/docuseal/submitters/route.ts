@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
+// Use /api/submitters for self-hosted, /submitters for hosted
+const getSubmittersApiPath = () => DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'submitters' : 'api/submitters';
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -63,7 +66,7 @@ export async function GET(request: Request) {
       if (externalId) params.append("external_id", externalId);
     }
 
-    const url = `${DOCUSEAL_API_BASE_URL}/submitters?${params.toString()}`;
+    const url = `${DOCUSEAL_API_BASE_URL}/${getSubmittersApiPath()}?${params.toString()}`;
 
     const docusealResponse = await fetch(url, {
       headers: {
