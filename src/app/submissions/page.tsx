@@ -79,7 +79,7 @@ export default function SubmissionsPage() {
     useForm<CreateSubmissionForm>({
       defaultValues: {
         submitters: [{ email: '', name: '', role: '' }],
-        send_email: false, // Use in-app signing instead of email
+        send_email: true, // Send email to recipients
       },
     });
 
@@ -184,13 +184,11 @@ export default function SubmissionsPage() {
       const submissionId = submitters[0]?.submission_id;
 
       if (submissionId) {
-        toast.success('Submission created! Redirecting to signing page...', {
-          description: 'You can sign the document now or copy the link to share.',
+        toast.success('Submission created successfully!', {
+          description: 'An email has been sent to the recipient with the signing link.',
         });
-        // Small delay to ensure submission is fully created
-        setTimeout(() => {
-          router.push(`/submissions/${submissionId}/sign`);
-        }, 500);
+        reset();
+        await fetchSubmissions();
       } else {
         // Fallback if no submission ID
         toast.success('Submission created successfully!');
