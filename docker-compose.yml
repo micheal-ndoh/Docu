@@ -87,7 +87,7 @@ services:
 
   # Keycloak Realm Import (runs after Keycloak starts)
   keycloak-init:
-    image: curlimages/curl:latest
+    image: alpine:3.18
     container_name: docu-keycloak-init
     depends_on:
       - keycloak
@@ -96,8 +96,10 @@ services:
     volumes:
       - ./scripts/import-realm.sh:/import-realm.sh:ro
       - ./realms/docuseal-realm.json:/docuseal-realm.json:ro
+    environment:
+      - KEYCLOAK_HOST=keycloak:8080
     entrypoint: /bin/sh
-    command: -c "apk add --no-cache jq && sh /import-realm.sh /docuseal-realm.json"
+    command: -c "apk add --no-cache curl jq && sh /import-realm.sh /docuseal-realm.json"
 
   # DocuSeal PostgreSQL Database
   postgres-docuseal:
