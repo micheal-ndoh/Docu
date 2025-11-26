@@ -7,3 +7,55 @@ Docu is a robust application designed for secure document management, electronic
 ## Production Links
 - Netlify: https://docusea12.netlify.app/
 - Vercel: https://docu-5qw4.vercel.app/
+
+## Running locally (Docker Compose)
+
+This repository includes a `docker-compose.yml` that runs the Next.js app, Keycloak, and DocuSeal services for local development.
+
+1. Start the stack:
+
+```bash
+# Start everything in the background
+docker compose up -d
+
+# (Recreate a single service if you changed envs)
+docker compose up -d --build nextjs-app
+```
+
+2. Watch logs (optional):
+
+```bash
+docker compose logs -f nextjs-app keycloak docu-docuseal
+```
+
+3. Stop and remove containers (and optionally volumes):
+
+```bash
+# Stop containers
+docker compose down
+
+# Stop and remove volumes (resets DBs)
+docker compose down -v
+```
+
+## Accessing the services
+
+- Next.js (app under development): http://localhost:3000
+- Keycloak (identity provider): http://localhost:8080 (admin console)
+- DocuSeal (self-hosted service): http://localhost:8081
+
+Notes:
+- The Keycloak realm `docuseal` and a client `docuseal-next` are auto-imported on stack startup by the `keycloak-init` job. If you change the realm file, remove Keycloak volumes and recreate the stack:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+- For local browser redirects Keycloak uses the hostname `keycloak`. If your browser cannot resolve that, add an `/etc/hosts` entry:
+
+```bash
+sudo -- sh -c 'printf "127.0.0.1\tkeycloak\n" >> /etc/hosts'
+```
+
+- Client secret and other sensitive values should be set via `.env` and not committed to source.
