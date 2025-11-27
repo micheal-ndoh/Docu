@@ -21,7 +21,8 @@
       "secret": "if0uZ9BeVmgPDrJBjVlXkiyGE9dNP5hc",
       "redirectUris": [
         "http://localhost:3000/api/auth/callback/keycloak",
-        "http://localhost:3000/*"
+        "http://localhost:3000/*",
+        "http://localhost:3000"
       ],
       "webOrigins": ["http://localhost:3000"],
       "directAccessGrantsEnabled": true,
@@ -29,7 +30,7 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:3000/"
+        "post.logout.redirect.uris": "http://localhost:3000/*"
       }
     }
   ],
