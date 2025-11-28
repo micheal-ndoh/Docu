@@ -86,7 +86,7 @@ export async function GET(request: Request) {
     if (Array.isArray(data)) return NextResponse.json({ data });
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error("Error fetching DocuSeal submitters:", error);
+    console.error("Error fetching GIS Docusign submitters:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }

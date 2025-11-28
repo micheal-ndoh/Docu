@@ -1,4 +1,4 @@
-Keycloak realm for DocuSeal
+Keycloak realm for GIS Docusign
 
 Import instructions:
 

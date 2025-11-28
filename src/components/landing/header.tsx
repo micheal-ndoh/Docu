@@ -30,7 +30,7 @@ export function Header() {
             <path d="M15 5L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M3 21C3 21 5 19 7 19C9 19 9 21 11 21C13 21 13 19 15 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span className="font-semibold text-white">DocuSeal</span>
+          <span className="font-semibold text-white">GIS Docusign</span>
         </Link>
         <nav className="hidden items-center gap-6 text-base font-bold md:flex">
           <Link

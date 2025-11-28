@@ -8,7 +8,7 @@ const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.
 
 /**
  * GET /api/docuseal/templates
- * Fetches all templates from DocuSeal (admin-created templates)
+ * Fetches all templates from GIS Docusign (admin-created templates)
  * Any authenticated user can view all templates
  */
 export async function GET(request: Request) {
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
 
-        // Build query parameters for DocuSeal API
+        // Build query parameters for GIS Docusign API
         const params = new URLSearchParams();
 
         // Pagination parameters
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
         const apiPath = DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'templates' : 'api/templates';
         const url = `${DOCUSEAL_API_BASE_URL}/${apiPath}?${params.toString()}`;
 
-        console.log('Fetching templates from DocuSeal:', url);
+        console.log('Fetching templates from GIS Docusign:', url);
 
         const docusealResponse = await fetch(url, {
             headers: {
@@ -73,9 +73,9 @@ export async function GET(request: Request) {
 
         if (!docusealResponse.ok) {
             const errorText = await docusealResponse.text();
-            console.error('DocuSeal API error:', docusealResponse.status, errorText);
+            console.error('GIS Docusign API error:', docusealResponse.status, errorText);
             return NextResponse.json(
-                { message: `DocuSeal API error: ${docusealResponse.status}`, details: errorText },
+                { message: `GIS Docusign API error: ${docusealResponse.status}`, details: errorText },
                 { status: docusealResponse.status }
             );
         }
@@ -87,8 +87,8 @@ export async function GET(request: Request) {
             console.error('DocuSeal API returned non-JSON response:', responseText.substring(0, 200));
             return NextResponse.json(
                 {
-                    message: "DocuSeal API returned HTML instead of JSON - likely redirecting to setup/login page",
-                    details: "Please ensure your self-hosted DocuSeal instance is fully set up and the API key is correct"
+                    message: "GIS Docusign API returned HTML instead of JSON - likely redirecting to setup/login page",
+                    details: "Please ensure your self-hosted GIS Docusign instance is fully set up and the API key is correct"
                 },
                 { status: 502 } // Bad Gateway
             );
@@ -98,10 +98,10 @@ export async function GET(request: Request) {
         console.log('Templates fetched successfully:', data);
 
         // Return the data in the expected format
-        // DocuSeal returns { data: [...], pagination: {...} }
+        // GIS Docusign returns { data: [...], pagination: {...} }
         return NextResponse.json(data);
     } catch (error: unknown) {
-        console.error("Error fetching DocuSeal templates:", error);
+        console.error("Error fetching GIS Docusign templates:", error);
         return NextResponse.json(
             {
                 message: "Internal Server Error",

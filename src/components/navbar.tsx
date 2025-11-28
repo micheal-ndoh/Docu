@@ -25,7 +25,7 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="mr-6 flex items-center space-x-1 ml-2">
           <span className="text-2xl">🐵</span>
-          <span className="hidden font-bold sm:inline-block">DocuSeal App</span>
+          <span className="hidden font-bold sm:inline-block">GIS Docusign App</span>
         </Link>
 
         {/* Right side */}

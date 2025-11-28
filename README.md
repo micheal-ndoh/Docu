@@ -1,8 +1,8 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/01e2adcd-1521-4b1d-99af-3a734a8743d5/deploy-status)](https://app.netlify.com/projects/docusea12/deploys)
 
-# Docu
+# GIS Docusign
 
-Docu is a robust application designed for secure document management, electronic signatures, and streamlined workflow automation. It allows users to upload, prepare, and send documents for signing, track submission statuses, and manage submitters efficiently.
+GIS Docusign is a robust application designed for secure document management, electronic signatures, and streamlined workflow automation. It allows users to upload, prepare, and send documents for signing, track submission statuses, and manage submitters efficiently.
 
 ## Production Links
 - Netlify: https://docusea12.netlify.app/
@@ -10,7 +10,7 @@ Docu is a robust application designed for secure document management, electronic
 
 ## Running locally (Docker Compose)
 
-This repository includes a `docker-compose.yml` that runs the Next.js app, Keycloak, and DocuSeal services for local development.
+This repository includes a `docker-compose.yml` that runs the Next.js app, Keycloak, and GIS Docusign services for local development.
 
 1. Start the stack:
 
@@ -42,7 +42,7 @@ docker compose down -v
 
 - Next.js (app under development): http://localhost:3000
 - Keycloak (identity provider): http://localhost:8080 (admin console)
-- DocuSeal (self-hosted service): http://localhost:8081
+- GIS Docusign (self-hosted service): http://localhost:8081
 
 Notes:
 - The Keycloak realm `docuseal` and a client `docuseal-next` are auto-imported on stack startup by the `keycloak-init` job. If you change the realm file, remove Keycloak volumes and recreate the stack:
@@ -62,8 +62,8 @@ sudo -- sh -c 'printf "127.0.0.1\tkeycloak\n" >> /etc/hosts'
 
 **Environment variables**
 
-- **`DOCUSEAL_API_KEY`**: API key for your self-hosted DocuSeal instance. Set this in your local `.env` (see `.env.example`) and do NOT commit it to the repository.
-- **`DOCUSEAL_URL`**: Base URL for your DocuSeal service. In the Docker Compose setup the service is reachable at `http://docuseal:3000` from other containers; for browser access use `http://localhost:8081`.
+- **`DOCUSEAL_API_KEY`**: API key for your self-hosted GIS Docusign instance. Set this in your local `.env` (see `.env.example`) and do NOT commit it to the repository.
+- **`DOCUSEAL_URL`**: Base URL for your GIS Docusign service. In the Docker Compose setup the service is reachable at `http://docuseal:3000` from other containers; for browser access use `http://localhost:8081`.
 - **`KEYCLOAK_ISSUER`**: URL of your Keycloak realm (example: `http://keycloak:8080/realms/docuseal`).
 
 After adding or changing values in `.env` you must restart the Next.js process so it picks up the updated environment variables. Example (using Docker Compose):

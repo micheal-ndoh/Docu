@@ -38,7 +38,7 @@ export async function GET(
     return NextResponse.json(submission);
   } catch (error: unknown) {
     const { id } = await params;
-    console.error(`Error fetching DocuSeal submission ${id}:`, error);
+    console.error(`Error fetching GIS Docusign submission ${id}:`, error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
@@ -67,8 +67,8 @@ export async function DELETE(
   try {
     const docusealApiKey = process.env.DOCUSEAL_API_KEY;
     if (!docusealApiKey) {
-      console.error('[api/docuseal/submissions/[id]] DOCUSEAL_API_KEY is not set.');
-      return NextResponse.json({ message: "Server configuration error: DocuSeal API key missing." }, { status: 500 });
+      console.error('[api/docuseal/submissions/[id]] GIS_DOCUSIGN_API_KEY is not set.');
+      return NextResponse.json({ message: "Server configuration error: GIS Docusign API key missing." }, { status: 500 });
     }
     console.log('[api/docuseal/submissions/[id]] Using DOCUSEAL_API_KEY:', docusealApiKey ? 'present' : 'missing');
 
@@ -83,19 +83,19 @@ export async function DELETE(
     );
     if (!docusealResponse.ok) {
       const errorData = await docusealResponse.json();
-      console.error('[api/docuseal/submissions/[id]] DocuSeal DELETE error:', { status: docusealResponse.status, body: errorData });
+      console.error('[api/docuseal/submissions/[id]] GIS Docusign DELETE error:', { status: docusealResponse.status, body: errorData });
       return NextResponse.json(errorData, {
         status: docusealResponse.status,
       });
     }
 
-    console.log('[api/docuseal/submissions/[id]] DocuSeal DELETE success', { id });
+    console.log('[api/docuseal/submissions/[id]] GIS Docusign DELETE success', { id });
     return NextResponse.json(
       { message: "Submission deleted successfully" },
       { status: 200 }
     );
   } catch (error: unknown) {
-    console.error(`Error deleting DocuSeal submission ${id}:`, error);
+    console.error(`Error deleting GIS Docusign submission ${id}:`, error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }

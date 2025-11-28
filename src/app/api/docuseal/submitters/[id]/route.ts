@@ -38,7 +38,7 @@ export async function GET(
     const data = await docusealResponse.json();
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error(`Error fetching DocuSeal submitter ${params.id}:`, error);
+    console.error(`Error fetching GIS Docusign submitter ${params.id}:`, error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
@@ -81,7 +81,7 @@ export async function PUT(
     const data = await docusealResponse.json();
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error(`Error updating DocuSeal submitter ${params.id}:`, error);
+    console.error(`Error updating GIS Docusign submitter ${params.id}:`, error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }

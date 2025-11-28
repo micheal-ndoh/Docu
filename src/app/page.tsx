@@ -12,7 +12,7 @@ export default function HomePage() {
           <FilePenLine className="h-10 w-10 text-white" />
         </div>
 
-        <h1 className="text-5xl font-bold text-white">DocuSeal</h1>
+        <h1 className="text-5xl font-bold text-white">GIS Docusign</h1>
         <p className="text-lg text-white/90">Sign Your Documents with Confidence</p>
 
         <div className="pt-8">

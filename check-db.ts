@@ -12,7 +12,7 @@ async function checkSubmissions() {
         console.log('Total submissions in database:', submissions.length);
         console.log('\nSubmissions:');
         submissions.forEach((sub, idx) => {
-            console.log(`${idx + 1}. ID: ${sub.id}, DocuSeal ID: ${sub.docusealId}, User: ${sub.userId}, Status: ${sub.status}, Email: ${sub.submitterEmail}`);
+            console.log(`${idx + 1}. ID: ${sub.id}, GIS Docusign ID: ${sub.docusealId}, User: ${sub.userId}, Status: ${sub.status}, Email: ${sub.submitterEmail}`);
         });
 
         // Also check users

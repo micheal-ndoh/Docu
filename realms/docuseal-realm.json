@@ -1,7 +1,7 @@
 {
   "id": "docuseal-realm",
   "realm": "docuseal",
-  "displayName": "DocuSeal Realm",
+  "displayName": "GIS Docusign Realm",
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": true,
@@ -13,7 +13,7 @@
   "clients": [
     {
       "clientId": "docuseal-next",
-      "name": "DocuSeal Next.js App",
+      "name": "GIS Docusign Next.js App",
       "enabled": true,
       "publicClient": false,
       "protocol": "openid-connect",

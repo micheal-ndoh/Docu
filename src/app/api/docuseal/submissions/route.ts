@@ -120,7 +120,7 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ ...data, data: submissions });
   } catch (error: unknown) {
-    console.error("Error fetching DocuSeal submissions:", error);
+    console.error("Error fetching GIS Docusign submissions:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
@@ -128,7 +128,7 @@ export async function GET(request: Request) {
   }
 }
 
-// Helper function to sync submission status from DocuSeal
+// Helper function to sync submission status from GIS Docusign
 export async function syncSubmissionStatus(submissionId: number, status: string) {
   try {
     await prisma.submission.update({
@@ -185,12 +185,12 @@ export async function POST(request: Request) {
       return NextResponse.json(data, { status: 201 });
     }
 
-    // Otherwise expect JSON - forward the entire payload to DocuSeal API
+    // Otherwise expect JSON - forward the entire payload to GIS Docusign API
     const body = (await request.json()) as Partial<DocuSeal.CreateSubmissionRequest>;
 
     console.log('Received submission request:', JSON.stringify(body, null, 2));
 
-    // The payload is already in the correct format for DocuSeal API
+    // The payload is already in the correct format for GIS Docusign API
     // Just ensure required fields are present
     if (!body.template_id) {
       console.error('Missing template_id in request body');
@@ -227,7 +227,7 @@ export async function POST(request: Request) {
       };
     }
 
-    console.log('Sending to DocuSeal API:', JSON.stringify(body, null, 2));
+    console.log('Sending to GIS Docusign API:', JSON.stringify(body, null, 2));
 
     const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}`, {
       method: 'POST',
@@ -240,18 +240,18 @@ export async function POST(request: Request) {
 
     if (!docusealResponse.ok) {
       const errorData = await docusealResponse.json();
-      console.error('DocuSeal API error:', docusealResponse.status, errorData);
+      console.error('GIS Docusign API error:', docusealResponse.status, errorData);
       return NextResponse.json(errorData, {
         status: docusealResponse.status,
       });
     }
 
     const data = await docusealResponse.json();
-    console.log('DocuSeal API success:', data);
+    console.log('GIS Docusign API success:', data);
 
     // Save submission to database for tracking
     try {
-      // DocuSeal returns an array of submitters, we need to extract submission_id
+      // GIS Docusign returns an array of submitters, we need to extract submission_id
       const submitters = Array.isArray(data) ? data : [data];
       console.log('Attempting to save to database. Data structure:', JSON.stringify(submitters, null, 2));
 
@@ -286,7 +286,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data, { status: 201 });
   } catch (error: unknown) {
-    console.error("Error creating DocuSeal submission:", error);
+    console.error("Error creating GIS Docusign submission:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
