@@ -133,9 +133,23 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres-docuseal:5432/docuseal
       FORCE_SSL: "false"
+      SMTP_ADDRESS: mailhog
+      SMTP_PORT: 1025
+      SMTP_AUTHENTICATION: none
+      SMTP_FROM: noreply@docuseal.local
     depends_on:
       postgres-docuseal:
         condition: service_healthy
+    networks:
+      - app-network
+
+  # MailHog for local email testing
+  mailhog:
+    image: mailhog/mailhog
+    container_name: docu-mailhog
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
     networks:
       - app-network
 

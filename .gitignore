@@ -74,3 +74,8 @@ USER_FILTERING_IMPLEMENTATION.md
 pg_data/
 docuseal/dump.rdb
 docuseal/attachments/
+
+# Terraform
+.terraform
+.terraform.lock.hcl
+    

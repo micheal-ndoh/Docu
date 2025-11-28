@@ -1,0 +1,52 @@
+# ========================================
+# AWS Configuration
+# ========================================
+aws_region    = "us-east-1"
+environment   = "production"
+instance_type = "t3.medium"
+
+# SSH Key Pair (create this in AWS first!)
+key_name = "gis-docusign-key"
+
+# IMPORTANT: Change this to your IP address for security!
+# Get your IP: curl ifconfig.me
+ssh_allowed_ips = ["YOUR_IP_ADDRESS/32"]
+
+# ========================================
+# Database Passwords
+# Generate strong passwords (min 12 characters)
+# ========================================
+nextjs_db_password      = "CHANGE_ME_strong_password_123"
+keycloak_db_password    = "CHANGE_ME_strong_password_456"
+docuseal_db_password    = "CHANGE_ME_strong_password_789"
+keycloak_admin_password = "CHANGE_ME_admin_password_012"
+
+# ========================================
+# Application Secrets
+# ========================================
+
+# NextAuth Secret (generate with: openssl rand -base64 32)
+nextauth_secret = "CHANGE_ME_generate_with_openssl_rand_base64_32"
+
+# NextAuth URL (will be updated after deployment)
+# Format: http://YOUR_EC2_IP:3000
+nextauth_url = "http://CHANGE_ME_EC2_IP:3000"
+
+# Keycloak Configuration
+keycloak_id = "gis-docusign-client"
+
+# Client secret for realm import (generate with: openssl rand -base64 32)
+# This is set in the Keycloak realm during import
+keycloak_client_secret = "CHANGE_ME_generate_with_openssl_rand_base64_32"
+
+# OAuth client secret (same as keycloak_client_secret for initial deployment)
+# After deployment, you can regenerate this in Keycloak admin console
+keycloak_secret = "CHANGE_ME_same_as_keycloak_client_secret_initially"
+
+# Keycloak Issuer (will be updated after deployment)
+# Format: http://YOUR_EC2_IP:8080/realms/docu
+keycloak_issuer = "http://CHANGE_ME_EC2_IP:8080/realms/docu"
+
+# DocuSeal API Key
+# Get this from DocuSeal after setup
+docuseal_api_key = "CHANGE_ME_from_docuseal_settings"
