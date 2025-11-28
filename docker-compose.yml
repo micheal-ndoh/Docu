@@ -145,15 +145,16 @@ services:
     networks:
       - app-network
 
-  # MailHog for Email Testing
   mailhog:
-    image: mailhog/mailhog
+    image: mailhog/mailhog:latest
     container_name: docu-mailhog
     ports:
       - "1025:1025" # SMTP server
       - "8025:8025" # Web UI
     networks:
       - app-network
+    depends_on:
+      - docuseal
 
 volumes:
   postgres_data:
