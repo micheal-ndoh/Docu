@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     }
 
     const idToken = session.idToken;
-    const issuer = process.env.KEYCLOAK_ISSUER;
+    const issuer = process.env.KEYCLOAK_ISSUER?.replace('keycloak', 'localhost');
     const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
     // Keycloak logout URL structure
