@@ -13,7 +13,7 @@ export default function HomePage() {
         </div>
 
         <h1 className="text-5xl font-bold text-white">GIS Docusign</h1>
-        <p className="text-lg text-white/90">Sign Your Documents with Confidence</p>
+        <p className="text-lg text-white/90">Document seal made easy</p>
 
         <div className="pt-8">
           <Button

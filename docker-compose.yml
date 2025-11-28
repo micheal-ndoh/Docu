@@ -133,6 +133,12 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres-docuseal:5432/docuseal
       FORCE_SSL: "false"
+      HOST: "http://localhost:8081"
+      SMTP_ADDRESS: "mailhog"
+      SMTP_PORT: "1025"
+      SMTP_USERNAME: "test"
+      SMTP_PASSWORD: "test"
+      SMTP_FROM: "admin@docuseal.com"
     depends_on:
       postgres-docuseal:
         condition: service_healthy
