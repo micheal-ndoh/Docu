@@ -21,13 +21,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  experimental: {
-    serverComponentsExternalPackages: ['next-auth', '@auth/core'],
-  },
+  experimental: {},
   webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('next-auth', '@auth/core');
-    }
     return config;
   },
 };
