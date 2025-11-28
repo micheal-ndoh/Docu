@@ -1,7 +1,7 @@
 {
   "id": "docuseal-realm",
   "realm": "docuseal",
-  "displayName": "GIS Docusign Realm",
+  "displayName": "GIS Docusign",
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": true,
