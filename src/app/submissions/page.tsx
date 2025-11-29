@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { useSession } from 'next-auth/react';
-import { federatedLogout } from '@/lib/federated-logout';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
+import { federatedLogout } from "@/lib/federated-logout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -14,14 +14,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,28 +32,43 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { toast } from 'sonner';
-import { Loader2, Trash2, PlusCircle, Copy, Download, Eye, Send, Search, Filter, User, Calendar, LayoutGrid, Menu, LogOut } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { SubmissionsSkeleton } from '@/components/loading-skeletons';
+} from "@/components/ui/select";
+import { useForm, useFieldArray } from "react-hook-form";
+import { toast } from "sonner";
+import {
+  Loader2,
+  Trash2,
+  PlusCircle,
+  Copy,
+  Download,
+  Eye,
+  Send,
+  Search,
+  Filter,
+  User,
+  Calendar,
+  LayoutGrid,
+  Menu,
+  LogOut,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { SubmissionsSkeleton } from "@/components/loading-skeletons";
 
 interface CreateSubmissionForm {
   template_id: number;
@@ -69,34 +84,37 @@ export default function SubmissionsPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [submissions, setSubmissions] = useState<DocuSeal.Submission[]>([]);
-  const [templates, setTemplates] = useState<{ id: number; name: string }[]>([]);
+  const [templates, setTemplates] = useState<{ id: number; name: string }[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { register, handleSubmit, reset, control, setValue } =
     useForm<CreateSubmissionForm>({
       defaultValues: {
-        submitters: [{ email: '', name: '', role: '' }],
+        submitters: [{ email: "", name: "", role: "" }],
         send_email: true, // Send email to recipients
       },
     });
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'submitters',
+    name: "submitters",
   });
 
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/docuseal/submissions?status=${filterStatus === 'ALL' ? '' : filterStatus
+        `/api/docuseal/submissions?status=${
+          filterStatus === "ALL" ? "" : filterStatus
         }`
       );
       if (!response.ok) {
-        throw new Error('Failed to fetch submissions');
+        throw new Error("Failed to fetch submissions");
       }
       const raw = await response.json();
       // Accept multiple shapes: { data: [...] }, { items: [...] }, or direct array
@@ -109,9 +127,9 @@ export default function SubmissionsPage() {
       else payload = [];
       setSubmissions(payload);
     } catch (error: unknown) {
-      toast.error('Error fetching submissions', {
+      toast.error("Error fetching submissions", {
         description:
-          error instanceof Error ? error.message : 'An unknown error occurred',
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     } finally {
       setLoading(false);
@@ -120,17 +138,17 @@ export default function SubmissionsPage() {
 
   const fetchTemplatesForForm = useCallback(async () => {
     try {
-      const response = await fetch('/api/docuseal/templates');
+      const response = await fetch("/api/docuseal/templates");
       if (!response.ok) {
-        throw new Error('Failed to fetch templates for form');
+        throw new Error("Failed to fetch templates for form");
       }
       const data: DocuSeal.PaginatedResponse<DocuSeal.Template> =
         await response.json();
       setTemplates(data.data.map((t) => ({ id: t.id, name: t.name })));
     } catch (error: unknown) {
-      toast.error('Error fetching templates for form', {
+      toast.error("Error fetching templates for form", {
         description:
-          error instanceof Error ? error.message : 'An unknown error occurred',
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     }
   }, []);
@@ -143,7 +161,7 @@ export default function SubmissionsPage() {
   const onCreateSubmission = async (data: CreateSubmissionForm) => {
     setCreating(true);
     try {
-      console.log('Submitting data:', data);
+      console.log("Submitting data:", data);
 
       // Ensure the payload has the correct structure
       const payload = {
@@ -152,24 +170,25 @@ export default function SubmissionsPage() {
         send_email: data.send_email,
       };
 
-      console.log('Payload to send:', payload);
+      console.log("Payload to send:", payload);
 
-      const response = await fetch('/api/docuseal/submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/docuseal/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('API error:', errorData);
+        console.error("API error:", errorData);
 
-        let errorMessage = 'Failed to create submission.';
-        if (errorData?.error === 'Template does not contain fields') {
-          errorMessage = 'This template has no fields. Please edit the template to add signature fields before creating a submission.';
+        let errorMessage = "Failed to create submission.";
+        if (errorData?.error === "Template does not contain fields") {
+          errorMessage =
+            "This template has no fields. Please edit the template to add signature fields before creating a submission.";
         } else if (errorData?.message) {
           errorMessage = errorData.message;
-        } else if (typeof errorData?.error === 'string') {
+        } else if (typeof errorData?.error === "string") {
           errorMessage = errorData.error;
         }
 
@@ -177,15 +196,18 @@ export default function SubmissionsPage() {
       }
 
       const responseData = await response.json();
-      console.log('Response data:', responseData);
+      console.log("Response data:", responseData);
 
       // DocuSeal API returns an array of submitters
-      const submitters = Array.isArray(responseData) ? responseData : [responseData];
+      const submitters = Array.isArray(responseData)
+        ? responseData
+        : [responseData];
       const submissionId = submitters[0]?.submission_id;
 
       if (submissionId) {
-        toast.success('Submission created successfully!', {
-          description: 'An email has been sent to the recipient with the signing link.',
+        toast.success("Submission created successfully!", {
+          description:
+            "An email has been sent to the recipient with the signing link.",
         });
         reset();
         // Small delay to ensure database has been updated
@@ -194,15 +216,15 @@ export default function SubmissionsPage() {
         }, 1000);
       } else {
         // Fallback if no submission ID
-        toast.success('Submission created successfully!');
+        toast.success("Submission created successfully!");
         reset();
         await fetchSubmissions();
       }
     } catch (error: unknown) {
-      console.error('Submission error:', error);
-      toast.error('Error creating submission', {
+      console.error("Submission error:", error);
+      toast.error("Error creating submission", {
         description:
-          error instanceof Error ? error.message : 'An unknown error occurred',
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     } finally {
       setCreating(false);
@@ -212,48 +234,46 @@ export default function SubmissionsPage() {
   const onDeleteSubmission = async (id: number) => {
     const originalSubmissions = submissions;
     setSubmissions((prev) => prev.filter((s) => s.id !== id));
-    toast.loading('Deleting submission...', { id: 'delete-submission' });
+    toast.loading("Deleting submission...", { id: "delete-submission" });
 
     try {
       const response = await fetch(`/api/docuseal/submissions/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete submission');
+        throw new Error("Failed to delete submission");
       }
 
-      toast.success('Submission deleted successfully!', {
-        id: 'delete-submission',
+      toast.success("Submission deleted successfully!", {
+        id: "delete-submission",
       });
     } catch (error: unknown) {
-      toast.error('Error deleting submission', {
+      toast.error("Error deleting submission", {
         description:
-          error instanceof Error ? error.message : 'An unknown error occurred',
-        id: 'delete-submission',
+          error instanceof Error ? error.message : "An unknown error occurred",
+        id: "delete-submission",
       });
       setSubmissions(originalSubmissions);
     }
   };
 
-
-
   const onResendInvite = async (submitterId: number) => {
-    toast.loading('Resending invite...', { id: `resend-${submitterId}` });
+    toast.loading("Resending invite...", { id: `resend-${submitterId}` });
     try {
       const response = await fetch(`/api/docuseal/submitters/${submitterId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ send_email: true }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to resend invite');
+        throw new Error("Failed to resend invite");
       }
 
-      toast.success('Invite resent', { id: `resend-${submitterId}` });
+      toast.success("Invite resent", { id: `resend-${submitterId}` });
     } catch (err: unknown) {
-      toast.error('Error resending invite', {
+      toast.error("Error resending invite", {
         id: `resend-${submitterId}`,
         description: err instanceof Error ? err.message : String(err),
       });
@@ -262,18 +282,18 @@ export default function SubmissionsPage() {
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toUpperCase()) {
-      case 'SENT':
-      case 'PENDING': // From dev branch
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-400';
-      case 'DECLINED':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-400';
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-400';
-      case 'OPENED':
-      case 'EXPIRED': // From dev branch
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-400';
+      case "SENT":
+      case "PENDING": // From dev branch
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-400";
+      case "DECLINED":
+        return "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-400";
+      case "COMPLETED":
+        return "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-400";
+      case "OPENED":
+      case "EXPIRED": // From dev branch
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-400";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
   };
 
@@ -287,7 +307,7 @@ export default function SubmissionsPage() {
           (s.name && s.name.toLowerCase().includes(searchLower))
       );
     const matchesStatus =
-      filterStatus === 'ALL' ||
+      filterStatus === "ALL" ||
       submission.status.toUpperCase() === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -325,7 +345,10 @@ export default function SubmissionsPage() {
               {session && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                    <Button
+                      variant="ghost"
+                      className="relative h-11 w-11 rounded-full"
+                    >
                       <Avatar className="h-11 w-11 border-2 border-purple-200">
                         <AvatarImage
                           src={session.user?.image || "/avatars/01.png"}
@@ -334,10 +357,10 @@ export default function SubmissionsPage() {
                         <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
                           {session.user?.name
                             ? session.user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()
                             : "U"}
                         </AvatarFallback>
                       </Avatar>
@@ -378,7 +401,9 @@ export default function SubmissionsPage() {
                   <Filter className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Label className="text-sm font-semibold text-purple-900">Filter by:</Label>
+                  <Label className="text-sm font-semibold text-purple-900">
+                    Filter by:
+                  </Label>
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger className="w-[180px] border-2 border-purple-300 bg-white focus:border-purple-600 focus:ring-purple-600 font-medium">
                       <SelectValue placeholder="Filter by Status" />
@@ -440,7 +465,7 @@ export default function SubmissionsPage() {
                   <Label htmlFor="template_id">Template</Label>
                   <Select
                     onValueChange={(value) => {
-                      setValue('template_id', Number(value));
+                      setValue("template_id", Number(value));
                     }}
                   >
                     <SelectTrigger>
@@ -459,7 +484,7 @@ export default function SubmissionsPage() {
                   </Select>
                   <input
                     type="hidden"
-                    {...register('template_id', { valueAsNumber: true })}
+                    {...register("template_id", { valueAsNumber: true })}
                   />
                 </div>
 
@@ -516,7 +541,7 @@ export default function SubmissionsPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => append({ email: '', name: '', role: '' })}
+                  onClick={() => append({ email: "", name: "", role: "" })}
                 >
                   Add Submitter
                 </Button>
@@ -524,7 +549,11 @@ export default function SubmissionsPage() {
                 {/* Email removed - using in-app signing instead */}
                 {/* Users can copy the signing link from the submissions list to share manually */}
 
-                <Button type="submit" disabled={creating} className="bg-[#3b0764] hover:bg-[#1e0836]">
+                <Button
+                  type="submit"
+                  disabled={creating}
+                  className="bg-[#3b0764] hover:bg-[#1e0836]"
+                >
                   {creating && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
@@ -539,11 +568,13 @@ export default function SubmissionsPage() {
         {filteredSubmissions.length === 0 ? (
           <div className="bg-white rounded-2xl border-2 border-gray-200 p-12 text-center">
             <Send className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-[#1e0836] mb-2">No submissions found</h3>
+            <h3 className="text-xl font-semibold text-[#1e0836] mb-2">
+              No submissions found
+            </h3>
             <p className="text-gray-600">
               {submissions.length === 0
-                ? 'Get started by creating your first submission.'
-                : 'Try adjusting your search or filter criteria.'}
+                ? "Get started by creating your first submission."
+                : "Try adjusting your search or filter criteria."}
             </p>
           </div>
         ) : (
@@ -551,11 +582,10 @@ export default function SubmissionsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[30%]">Template</TableHead>
-                  <TableHead className="w-[15%]">Status</TableHead>
+                  <TableHead className="w-[40%]">Template</TableHead>
+                  <TableHead className="w-[20%]">Status</TableHead>
                   <TableHead className="w-[25%]">Recipient</TableHead>
                   <TableHead className="w-[15%]">Created</TableHead>
-                  <TableHead className="w-[15%] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -591,13 +621,13 @@ export default function SubmissionsPage() {
                         <div>
                           <div className="text-sm font-medium">
                             {submission.submitters
-                              .map((s) => s.name || 'No Name')
-                              .join(', ')}
+                              .map((s) => s.name || "No Name")
+                              .join(", ")}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {submission.submitters
                               .map((s) => s.email)
-                              .join(', ')}
+                              .join(", ")}
                           </div>
                         </div>
                       </div>
@@ -607,115 +637,13 @@ export default function SubmissionsPage() {
                         <Calendar className="h-3 w-3" />
                         <span className="text-sm">
                           {new Date(submission.created_at).toLocaleDateString(
-                            'en-US',
+                            "en-US",
                             {
-                              month: 'short',
-                              day: 'numeric',
+                              month: "short",
+                              day: "numeric",
                             }
                           )}
                         </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end space-x-1">
-                        {submission.submitters[0]?.embed_src && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                submission.submitters[0].embed_src || ''
-                              );
-                              toast.success(
-                                'Signing link copied to clipboard!'
-                              );
-                            }}
-                          >
-                            <Copy className="h-4 w-4" />
-                            <span className="sr-only">Copy signing link</span>
-                          </Button>
-                        )}
-                        {submission.status === 'completed' &&
-                          submission.documents?.[0]?.url && (
-                            <Link
-                              href={submission.documents[0].url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                              >
-                                <Download className="h-4 w-4" />
-                                <span className="sr-only">
-                                  Download document
-                                </span>
-                              </Button>
-                            </Link>
-                          )}
-                        {submission.submitters[0]?.embed_src && (
-                          <Link
-                            href={`/submissions/${submission.id}/sign`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <Eye className="h-4 w-4" />
-                              <span className="sr-only">View signing form</span>
-                            </Button>
-                          </Link>
-                        )}
-                        {submission.submitters[0] && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="mr-2"
-                            onClick={() =>
-                              onResendInvite(submission.submitters[0].id)
-                            }
-                          >
-                            <Send className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete submission</span>
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Are you absolutely sure?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently
-                                delete your submission and remove all associated data
-                                from our servers.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => onDeleteSubmission(submission.id)}
-                                className="bg-red-600 hover:bg-red-700 text-white"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -725,6 +653,6 @@ export default function SubmissionsPage() {
           </div>
         )}
       </div>
-    </div >
+    </div>
   );
 }

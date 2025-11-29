@@ -110,11 +110,10 @@ export function SubmissionsSkeleton() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[30%]">Template</TableHead>
-                <TableHead className="w-[15%]">Status</TableHead>
+                <TableHead className="w-[40%]">Template</TableHead>
+                <TableHead className="w-[20%]">Status</TableHead>
                 <TableHead className="w-[25%]">Recipient</TableHead>
                 <TableHead className="w-[15%]">Created</TableHead>
-                <TableHead className="w-[15%] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -145,14 +144,6 @@ export function SubmissionsSkeleton() {
                     <div className="flex items-center space-x-1">
                       <Skeleton className="h-3 w-3" />
                       <Skeleton className="h-4 w-16" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end space-x-1">
-                      <Skeleton className="h-8 w-8 rounded" />
-                      <Skeleton className="h-8 w-8 rounded" />
-                      <Skeleton className="h-8 w-8 rounded" />
-                      <Skeleton className="h-8 w-8 rounded" />
                     </div>
                   </TableCell>
                 </TableRow>
