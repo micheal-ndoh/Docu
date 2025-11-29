@@ -308,7 +308,9 @@ export default function SubmissionsPage() {
       );
     const matchesStatus =
       filterStatus === "ALL" ||
-      submission.status.toUpperCase() === filterStatus;
+      submission.status.toUpperCase() === filterStatus ||
+      (filterStatus === "SENT" &&
+        submission.status.toUpperCase() === "PENDING");
     return matchesSearch && matchesStatus;
   });
 
@@ -419,12 +421,6 @@ export default function SubmissionsPage() {
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                           Sent
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="OPENED" className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                          Opened
                         </div>
                       </SelectItem>
                       <SelectItem value="COMPLETED" className="font-medium">

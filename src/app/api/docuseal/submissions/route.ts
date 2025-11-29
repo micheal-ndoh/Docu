@@ -63,13 +63,10 @@ export async function GET(request: Request) {
 
     let status = searchParams.get("status") || "";
     // Map frontend status values to API values
-    if (status === "SENT") {
+    if (status === "SENT") { // Map frontend SENT to API's PENDING
       status = "pending";
     }
-    if (status === "OPENED") {
-      status = ""; // API doesn't support 'opened' filter
-    }
-    if (status && status !== "ALL") {
+    if (status && status !== "ALL") { // Only append status if it's not ALL
       params.append("status", status);
     }
 
