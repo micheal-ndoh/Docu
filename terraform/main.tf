@@ -1,9 +1,10 @@
 terraform {
-  cloud {
-    organization = "after-coders"
-    workspaces {
-      tags = ["after-coders-workspace"]
-    }
+  backend "s3" {
+    bucket         = "gis-docusign-terraform-state"
+    key            = "production/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "gis-docusign-terraform-locks"
   }
 
   required_providers {
