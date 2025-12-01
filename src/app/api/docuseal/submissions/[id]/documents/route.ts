@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
+
+// Use /api/submissions for self-hosted, /submissions for hosted
+const getSubmissionsApiPath = () => DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'submissions' : 'api/submissions';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(request);
+  const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -15,7 +19,7 @@ export async function GET(
   try {
     const { id } = params;
     const docusealResponse = await fetch(
-      `${DOCUSEAL_API_BASE_URL}/submissions/${id}/documents`,
+      `${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}/${id}/documents`,
       {
         headers: {
           "X-Auth-Token": process.env.DOCUSEAL_API_KEY ?? '',

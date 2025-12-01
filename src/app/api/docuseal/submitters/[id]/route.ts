@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
+
+// Use /api/submitters for self-hosted, /submitters for hosted
+const getSubmittersApiPath = () => DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'submitters' : 'api/submitters';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(request);
+  const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -15,7 +19,7 @@ export async function GET(
   try {
     const { id } = params;
     const docusealResponse = await fetch(
-      `${DOCUSEAL_API_BASE_URL}/submitters/${id}`,
+      `${DOCUSEAL_API_BASE_URL}/${getSubmittersApiPath()}/${id}`,
       {
         headers: {
           "X-Auth-Token": process.env.DOCUSEAL_API_KEY ?? '',
@@ -34,7 +38,7 @@ export async function GET(
     const data = await docusealResponse.json();
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error(`Error fetching DocuSeal submitter ${params.id}:`, error);
+    console.error(`Error fetching GIS Docusign submitter ${params.id}:`, error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
@@ -46,7 +50,7 @@ export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(request);
+  const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -56,7 +60,7 @@ export async function PUT(
     const body = await request.json();
 
     const docusealResponse = await fetch(
-      `${DOCUSEAL_API_BASE_URL}/submitters/${id}`,
+      `${DOCUSEAL_API_BASE_URL}/${getSubmittersApiPath()}/${id}`,
       {
         method: "PUT",
         headers: {
@@ -77,7 +81,7 @@ export async function PUT(
     const data = await docusealResponse.json();
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error(`Error updating DocuSeal submitter ${params.id}:`, error);
+    console.error(`Error updating GIS Docusign submitter ${params.id}:`, error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }

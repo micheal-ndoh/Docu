@@ -68,5 +68,9 @@ Thumbs.db
 .vercel
 
 # Local development
-docuseal/
+#docuseal/
 USER_FILTERING_IMPLEMENTATION.md
+# Docker and database volumes
+pg_data/
+docuseal/dump.rdb
+docuseal/attachments/

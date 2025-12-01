@@ -21,6 +21,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {},
+  webpack: (config, { isServer }) => {
+    return config;
+  },
 };
 
 module.exports = nextConfig;

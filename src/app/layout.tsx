@@ -3,8 +3,8 @@ import './global.css';
 import ClientProviders from '@/components/client-providers';
 
 export const metadata = {
-  title: 'DocuSeal App',
-  description: 'Document management with DocuSeal API and Next.js',
+  title: 'GIS Docusign App',
+  description: 'Document management with GIS Docusign API and Next.js',
 };
 
 export default function RootLayout({

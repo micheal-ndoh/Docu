@@ -1,19 +1,20 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, PenTool, LogOut } from 'lucide-react';
-import { useSession, signOut } from '@/lib/auth-client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, PenTool, LogOut } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { federatedLogout } from "@/lib/federated-logout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
   const pathname = usePathname();
@@ -24,38 +25,56 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <Link href="#" className="flex items-center gap-2" prefetch={false}>
           {/* Custom hand with pen signing icon */}
-          <svg className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17 3L21 7L9 19L5 20L6 16L17 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            <path d="M15 5L19 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M3 21C3 21 5 19 7 19C9 19 9 21 11 21C13 21 13 19 15 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            className="h-8 w-8 text-white"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M17 3L21 7L9 19L5 20L6 16L17 3Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <path
+              d="M15 5L19 9"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M3 21C3 21 5 19 7 19C9 19 9 21 11 21C13 21 13 19 15 19"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
-          <span className="font-semibold text-white">DocuSeal</span>
+          <span className="font-semibold text-white">GIS Docusign</span>
         </Link>
         <nav className="hidden items-center gap-6 text-base font-bold md:flex">
           <Link
             href="/"
-            className={`transition-colors ${pathname === '/' ? 'text-purple-700' : 'text-black hover:text-purple-700'
-              }`}
+            className={`transition-colors ${
+              pathname === "/"
+                ? "text-purple-700"
+                : "text-black hover:text-purple-700"
+            }`}
             prefetch={false}
           >
             Home
           </Link>
           <Link
-            href="/templates"
-            className={`transition-all border-b-4 ${pathname === '/templates'
-              ? 'text-purple-700 border-purple-700'
-              : 'text-black border-transparent hover:text-black hover:border-purple-700'
-              }`}
-            prefetch={false}
-          >
-            Templates
-          </Link>
-          <Link
             href="/about"
-            className={`transition-all border-b-4 ${pathname === '/about'
-              ? 'text-purple-700 border-purple-700'
-              : 'text-black border-transparent hover:text-black hover:border-purple-700'
-              }`}
+            className={`transition-all border-b-4 ${
+              pathname === "/about"
+                ? "text-purple-700 border-purple-700"
+                : "text-black border-transparent hover:text-black hover:border-purple-700"
+            }`}
             prefetch={false}
           >
             About Us
@@ -66,7 +85,10 @@ export function Header() {
           {session ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                <Button
+                  variant="ghost"
+                  className="relative h-11 w-11 rounded-full"
+                >
                   <Avatar className="h-11 w-11 border-2 border-purple-200">
                     <AvatarImage
                       src={session.user?.image || "/avatars/01.png"}
@@ -75,10 +97,10 @@ export function Header() {
                     <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
                       {session.user?.name
                         ? session.user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
                         : "U"}
                     </AvatarFallback>
                   </Avatar>
@@ -89,12 +111,10 @@ export function Header() {
                   <p className="text-sm font-medium">
                     {session.user?.name || "User"}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    {session.user?.email}
-                  </p>
+                  <p className="text-xs text-gray-500">{session.user?.email}</p>
                 </div>
                 <DropdownMenuItem
-                  onClick={() => signOut()}
+                  onClick={() => federatedLogout()}
                   className="text-red-600 focus:text-red-600 cursor-pointer"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -123,29 +143,29 @@ export function Header() {
             <SheetContent side="right" className="bg-[#0B0C10] text-white">
               <div className="grid gap-4 p-4">
                 <Link
-                  href="#"
-                  className="text-black transition-colors hover:text-gray-700"
+                  href="/"
+                  className="text-white transition-colors hover:text-gray-300"
                   prefetch={false}
                 >
                   Home
                 </Link>
                 <Link
-                  href="#"
-                  className="text-black transition-colors hover:text-gray-700"
+                  href="/about"
+                  className="text-white transition-colors hover:text-gray-300"
                   prefetch={false}
                 >
                   About Us
                 </Link>
                 {session ? (
                   <Button
-                    onClick={() => signOut()}
+                    onClick={() => federatedLogout()}
                     variant="default"
                     className="w-full rounded-lg bg-red-600 px-6 py-2 font-bold text-white transition-colors hover:bg-red-700"
                   >
                     Log out
                   </Button>
                 ) : (
-                  <Link href="/auth/signup">
+                  <Link href="/auth/signup" className="w-full">
                     <Button
                       variant="default"
                       className="w-full rounded-lg bg-purple-900 px-6 py-2 font-bold text-white transition-colors hover:bg-purple-950"
