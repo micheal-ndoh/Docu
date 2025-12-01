@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Header } from './header';
+import { Header } from "./header";
 
 export function Hero() {
   return (
@@ -24,8 +24,10 @@ export function Hero() {
                 y2="700"
                 gradientUnits="userSpaceOnUse"
               >
-                <stop offset="20%" stopColor="#0f0520" /> {/* almost black purple */}
-                <stop offset="50%" stopColor="#1e0836" /> {/* very dark purple */}
+                <stop offset="20%" stopColor="#0f0520" />{" "}
+                {/* almost black purple */}
+                <stop offset="50%" stopColor="#1e0836" />{" "}
+                {/* very dark purple */}
                 <stop offset="100%" stopColor="#3b0764" /> {/* purple-900 */}
               </linearGradient>
             </defs>
@@ -67,21 +69,26 @@ export function Hero() {
 
           <div className="flex flex-1 flex-col items-center justify-center px-4 text-center pb-32">
             <div className="max-w-4xl">
-              <h1 className="mb-8 text-6xl font-bold tracking-tight text-white md:text-7xl leading-tight">
+              <h1 className="mb-8 text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl leading-tight">
                 Document signing
               </h1>
-              <p className="mb-0 text-xl text-white/90 max-w-2xl mx-auto leading-relaxed">
-                From upload to e-signature, Docu provides a seamless and secure workflow for all your important documents. Get started in seconds.
+              <p className="mb-0 text-lg text-white/90 max-w-2xl mx-auto leading-relaxed sm:text-xl">
+                From upload to e-signature, Docu provides a seamless and secure
+                workflow for all your important documents. Get started in
+                seconds.
               </p>
             </div>
           </div>
         </div>
 
         {/* Document Icon Floating */}
-        <div className="absolute bottom-[-70px] left-1/2 z-20 -translate-x-1/2 transform">
-          <div className="relative h-52 w-40 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-purple-700 p-6 shadow-[0_25px_60px_rgba(0,0,0,0.6)] border border-white/20">
+        <div className="absolute bottom-0 left-1/2 z-20 w-40 -translate-x-1/2 translate-y-1/2 transform sm:w-48 md:bottom-[-70px] md:w-auto md:-translate-y-0">
+          <div className="relative h-52 w-40 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-purple-700 p-6 shadow-[0_25px_60px_rgba(0,0,0,0.6)] border border-white/20 sm:h-64 sm:w-48">
             {/* Folded corner */}
-            <div className="absolute -top-0 -right-0 w-12 h-12 bg-gradient-to-br from-indigo-300 to-purple-400 rounded-bl-2xl" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%)' }}></div>
+            <div
+              className="absolute -top-0 -right-0 w-12 h-12 bg-gradient-to-br from-indigo-300 to-purple-400 rounded-bl-2xl"
+              style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%)" }}
+            ></div>
             <div className="absolute top-0 right-0 w-12 h-12 border-l-2 border-b-2 border-white/30 rounded-bl-2xl"></div>
 
             {/* Document lines */}
