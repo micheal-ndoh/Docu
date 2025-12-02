@@ -61,7 +61,7 @@ export async function GET(request: Request) {
         const apiPath = DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'templates' : 'api/templates';
         const url = `${DOCUSEAL_API_BASE_URL}/${apiPath}?${params.toString()}`;
 
-        console.log('Fetching templates from GIS Docusign:', url);
+
 
         const docusealResponse = await fetch(url, {
             headers: {
