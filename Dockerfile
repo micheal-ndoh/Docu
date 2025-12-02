@@ -42,7 +42,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone .
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Lambda will route traffic via the adapter to this port
+# Lambda will route traffic via the adapter to this  port
 EXPOSE 3000
 
 
