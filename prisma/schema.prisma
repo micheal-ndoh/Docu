@@ -49,18 +49,47 @@ model User {
 }
 
 model Submission {
-  id             String   @id @default(cuid())
-  userId         String
-  docusealId     Int      @unique // GIS Docusign submission ID
-  status         String   @default("pending")
-  submitterEmail String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String            @id @default(cuid())
+  userId          String
+  docusealId      Int               @unique // GIS Docusign submission ID
+  status          String            @default("pending") // Overall status
+  submitterEmail  String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submitterStatus SubmitterStatus[] // Per-party status tracking
 
   @@index([userId])
   @@index([docusealId])
   @@index([submitterEmail])
+}
+
+// Track status for each party in a submission
+model SubmitterStatus {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  
+  // DocuSeal submitter details
+  docusealSubmitterId Int? // DocuSeal's submitter ID
+  email               String
+  name                String?
+  role                String // e.g., "Admin", "Student", "Parent"
+  
+  // Status tracking
+  status      String    @default("pending") // pending, sent, opened, completed, declined
+  sentAt      DateTime?
+  openedAt    DateTime?
+  completedAt DateTime?
+  declinedAt  DateTime?
+  
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([submissionId])
+  @@index([docusealSubmitterId])
+  @@index([email])
 }
 
 model VerificationToken {

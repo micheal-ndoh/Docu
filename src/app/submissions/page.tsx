@@ -99,11 +99,13 @@ export default function SubmissionsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchSheetOpen, setIsSearchSheetOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isMobileDialogOpen, setIsMobileDialogOpen] = useState(false);
 
-  const { register, handleSubmit, reset, control, setValue } =
+  const { register, handleSubmit, reset, control, setValue, watch } =
     useForm<CreateSubmissionForm>({
       defaultValues: {
-        submitters: [{ email: "", name: "", role: "" }],
+        submitters: [],
         send_email: true, // Send email to recipients
       },
     });
@@ -113,12 +115,14 @@ export default function SubmissionsPage() {
     name: "submitters",
   });
 
+  // Watch template_id for changes
+  const selectedTemplateId = watch("template_id");
+
   const fetchSubmissions = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/docuseal/submissions?status=${
-          filterStatus === "ALL" ? "" : filterStatus
+        `/api/docuseal/submissions?status=${filterStatus === "ALL" ? "" : filterStatus
         }`
       );
       if (!response.ok) {
@@ -166,17 +170,92 @@ export default function SubmissionsPage() {
     fetchTemplatesForForm();
   }, [fetchSubmissions, fetchTemplatesForForm]);
 
+  const [selectedTemplateDetails, setSelectedTemplateDetails] = useState<any>(null);
+  const [fetchingTemplate, setFetchingTemplate] = useState(false);
+
+  // Reset form when dialog closes
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      reset();
+      setSelectedTemplateDetails(null);
+      setValue("submitters", []);
+    }
+  };
+
+  const handleMobileDialogClose = (open: boolean) => {
+    setIsMobileDialogOpen(open);
+    if (!open) {
+      reset();
+      setSelectedTemplateDetails(null);
+      setValue("submitters", []);
+    }
+  };
+
+  // Fetch template details when selected
+  useEffect(() => {
+    const fetchTemplateDetails = async () => {
+      const templateId = control._formValues.template_id;
+      if (!templateId) {
+        setSelectedTemplateDetails(null);
+        setValue("submitters", []);
+        return;
+      }
+
+      setFetchingTemplate(true);
+      try {
+        const response = await fetch(`/api/docuseal/templates/${templateId}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Template details:', data);
+          setSelectedTemplateDetails(data);
+
+          // Reset submitters array based on required parties
+          const requiredParties = data.submitters?.length || 2;
+          console.log(`Template requires ${requiredParties} parties`);
+
+          // If more than 2 parties, we need to collect info for Party 3+
+          // Parties 1 (Admin) and 2 (Student) are auto-handled
+          if (requiredParties > 2) {
+            const extraPartiesCount = requiredParties - 2;
+            console.log(`Need ${extraPartiesCount} additional party inputs`);
+            // Clear and add needed slots
+            setValue("submitters", Array(extraPartiesCount).fill({ email: "", name: "", role: "" }));
+          } else {
+            // No extra parties needed - clear the array
+            console.log('No additional parties needed, clearing submitters array');
+            setValue("submitters", []);
+          }
+        } else {
+          console.error('Failed to fetch template:', response.status);
+          toast.error("Failed to load template details");
+        }
+      } catch (error) {
+        console.error("Error fetching template details:", error);
+        toast.error("Failed to load template details");
+      } finally {
+        setFetchingTemplate(false);
+      }
+    };
+
+    fetchTemplateDetails();
+  }, [control._formValues.template_id, setValue]);
+
   const onCreateSubmission = async (data: CreateSubmissionForm) => {
     setCreating(true);
     try {
       console.log("Submitting data:", data);
 
-      // Ensure the payload has the correct structure
-      const payload = {
+      // Prepare payload based on smart party logic
+      const payload: any = {
         template_id: data.template_id,
-        submitters: data.submitters,
         send_email: data.send_email,
       };
+
+      // If we have extra parties (Party 3+), send them as additional_parties
+      if (data.submitters && data.submitters.length > 0) {
+        payload.additional_parties = data.submitters;
+      }
 
       console.log("Payload to send:", payload);
 
@@ -189,50 +268,31 @@ export default function SubmissionsPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error("API error:", errorData);
-
-        let errorMessage = "Failed to create submission.";
-        if (errorData?.error === "Template does not contain fields") {
-          errorMessage =
-            "This template has no fields. Please edit the template to add signature fields before creating a submission.";
-        } else if (errorData?.message) {
-          errorMessage = errorData.message;
-        } else if (typeof errorData?.error === "string") {
-          errorMessage = errorData.error;
-        }
-
-        throw new Error(errorMessage);
+        throw new Error(errorData.message || errorData.error || "Failed to create submission");
       }
 
       const responseData = await response.json();
-      console.log("Response data:", responseData);
 
-      // DocuSeal API returns an array of submitters
-      const submitters = Array.isArray(responseData)
-        ? responseData
-        : [responseData];
-      const submissionId = submitters[0]?.submission_id;
+      toast.success("Submission created successfully!", {
+        description: "Document sent to all parties.",
+      });
 
-      if (submissionId) {
-        toast.success("Submission created successfully!", {
-          description:
-            "An email has been sent to the recipient with the signing link.",
-        });
-        reset();
-        // Small delay to ensure database has been updated
-        setTimeout(async () => {
-          await fetchSubmissions();
-        }, 1000);
-      } else {
-        // Fallback if no submission ID
-        toast.success("Submission created successfully!");
-        reset();
+      // Close dialog and reset form
+      setIsDialogOpen(false);
+      setIsMobileDialogOpen(false);
+      reset();
+      setSelectedTemplateDetails(null);
+      setValue("submitters", []);
+
+      // Small delay to ensure database has been updated
+      setTimeout(async () => {
         await fetchSubmissions();
-      }
+      }, 1000);
+
     } catch (error: unknown) {
       console.error("Submission error:", error);
       toast.error("Error creating submission", {
-        description:
-          error instanceof Error ? error.message : "An unknown error occurred",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
       });
     } finally {
       setCreating(false);
@@ -358,10 +418,10 @@ export default function SubmissionsPage() {
                         <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
                           {session.user?.name
                             ? session.user.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase()
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
                             : "U"}
                         </AvatarFallback>
                       </Avatar>
@@ -457,13 +517,13 @@ export default function SubmissionsPage() {
             </div>
 
             {/* Create Submission Dialog */}
-            <Dialog>
+            <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
               <DialogTrigger asChild>
                 <Button className="hidden md:flex bg-[#3b0764] hover:bg-[#1e0836] text-white font-semibold">
                   <PlusCircle className="mr-2 h-4 w-4" /> Create Submission
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[80vh] overflow-y-auto">
+              <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Submission</DialogTitle>
                 </DialogHeader>
@@ -475,6 +535,7 @@ export default function SubmissionsPage() {
                     <Label htmlFor="template_id">Template</Label>
                     <Select
                       onValueChange={(value) => {
+                        console.log('Template selected:', value);
                         setValue("template_id", Number(value));
                       }}
                     >
@@ -498,12 +559,51 @@ export default function SubmissionsPage() {
                     />
                   </div>
 
-                  {fields.map((field, index) => (
+                  {/* Loading state */}
+                  {fetchingTemplate && (
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading template details...</span>
+                    </div>
+                  )}
+
+                  {/* Template Party Info */}
+                  {selectedTemplateDetails && !fetchingTemplate && (
+                    <div className="rounded-md bg-purple-50 p-4 border border-purple-100">
+                      <h4 className="font-medium text-purple-900 mb-2">Submission Parties</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-semibold w-20">Party 1:</span>
+                          <span>{selectedTemplateDetails.submitters?.[0]?.name || "Admin"} (School Administrator)</span>
+                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-semibold w-20">Party 2:</span>
+                          <span>{selectedTemplateDetails.submitters?.[1]?.name || "Student"} (You)</span>
+                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                        </div>
+
+                        {/* List additional required parties */}
+                        {selectedTemplateDetails.submitters?.slice(2).map((submitter: any, idx: number) => (
+                          <div key={idx} className="flex items-center text-gray-700">
+                            <span className="font-semibold w-20">Party {idx + 3}:</span>
+                            <span>{submitter.name || "Additional Party"}</span>
+                            <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Requires Input</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dynamic Fields for Party 3+ - Only show if template requires more than 2 parties */}
+                  {fields.length > 0 && fields.map((field, index) => (
                     <div
                       key={field.id}
-                      className="space-y-2 rounded-md border p-4"
+                      className="space-y-2 rounded-md border p-4 bg-white"
                     >
-                      <h4 className="font-medium">Submitter {index + 1}</h4>
+                      <h4 className="font-medium">
+                        {selectedTemplateDetails?.submitters?.[index + 2]?.name || `Party ${index + 3}`} Details
+                      </h4>
                       <div>
                         <Label htmlFor={`submitters.${index}.email`}>
                           Email
@@ -511,6 +611,7 @@ export default function SubmissionsPage() {
                         <Input
                           id={`submitters.${index}.email`}
                           type="email"
+                          placeholder="recipient@example.com"
                           {...register(`submitters.${index}.email`, {
                             required: true,
                           })}
@@ -523,54 +624,35 @@ export default function SubmissionsPage() {
                         </Label>
                         <Input
                           id={`submitters.${index}.name`}
+                          placeholder="John Doe"
                           {...register(`submitters.${index}.name`)}
                           disabled={creating}
                         />
                       </div>
-                      <div>
-                        <Label htmlFor={`submitters.${index}.role`}>
-                          Role (Optional)
-                        </Label>
-                        <Input
-                          id={`submitters.${index}.role`}
-                          {...register(`submitters.${index}.role`)}
-                          disabled={creating}
-                        />
-                      </div>
-                      {index > 0 && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => remove(index)}
-                        >
-                          Remove Submitter
-                        </Button>
-                      )}
                     </div>
                   ))}
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => append({ email: "", name: "", role: "" })}
-                  >
-                    Add Submitter
-                  </Button>
-
-                  {/* Email removed - using in-app signing instead */}
-                  {/* Users can copy the signing link from the submissions list to share manually */}
-
-                  <Button
-                    type="submit"
-                    disabled={creating}
-                    className="bg-[#3b0764] hover:bg-[#1e0836]"
-                  >
-                    {creating && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Create
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleDialogClose(false)}
+                      disabled={creating}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={creating || !selectedTemplateDetails}
+                      className="bg-[#3b0764] hover:bg-[#1e0836] flex-1"
+                    >
+                      {creating && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Create Submission
+                    </Button>
+                  </div>
                 </form>
               </DialogContent>
             </Dialog>
@@ -578,7 +660,7 @@ export default function SubmissionsPage() {
 
           {/* Floating Action Button for Create Submission on Mobile */}
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:hidden z-40">
-            <Dialog>
+            <Dialog open={isMobileDialogOpen} onOpenChange={handleMobileDialogClose}>
               <DialogTrigger asChild>
                 <Button
                   className="h-14 w-14 rounded-full bg-[#3b0764] hover:bg-[#1e0836] text-white shadow-lg transition-transform active:scale-95"
@@ -592,7 +674,7 @@ export default function SubmissionsPage() {
                   <span className="sr-only">Create Submission</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[80vh] overflow-y-auto">
+              <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Submission</DialogTitle>
                 </DialogHeader>
@@ -604,6 +686,7 @@ export default function SubmissionsPage() {
                     <Label htmlFor="template_id">Template</Label>
                     <Select
                       onValueChange={(value) => {
+                        console.log('Template selected (mobile):', value);
                         setValue("template_id", Number(value));
                       }}
                     >
@@ -627,12 +710,51 @@ export default function SubmissionsPage() {
                     />
                   </div>
 
-                  {fields.map((field, index) => (
+                  {/* Loading state */}
+                  {fetchingTemplate && (
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading template details...</span>
+                    </div>
+                  )}
+
+                  {/* Template Party Info */}
+                  {selectedTemplateDetails && !fetchingTemplate && (
+                    <div className="rounded-md bg-purple-50 p-4 border border-purple-100">
+                      <h4 className="font-medium text-purple-900 mb-2">Submission Parties</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-semibold w-20">Party 1:</span>
+                          <span>{selectedTemplateDetails.submitters?.[0]?.name || "Admin"} (School Administrator)</span>
+                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-semibold w-20">Party 2:</span>
+                          <span>{selectedTemplateDetails.submitters?.[1]?.name || "Student"} (You)</span>
+                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                        </div>
+
+                        {/* List additional required parties */}
+                        {selectedTemplateDetails.submitters?.slice(2).map((submitter: any, idx: number) => (
+                          <div key={idx} className="flex items-center text-gray-700">
+                            <span className="font-semibold w-20">Party {idx + 3}:</span>
+                            <span>{submitter.name || "Additional Party"}</span>
+                            <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Requires Input</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dynamic Fields for Party 3+ - Only show if template requires more than 2 parties */}
+                  {fields.length > 0 && fields.map((field, index) => (
                     <div
                       key={field.id}
-                      className="space-y-2 rounded-md border p-4"
+                      className="space-y-2 rounded-md border p-4 bg-white"
                     >
-                      <h4 className="font-medium">Submitter {index + 1}</h4>
+                      <h4 className="font-medium">
+                        {selectedTemplateDetails?.submitters?.[index + 2]?.name || `Party ${index + 3}`} Details
+                      </h4>
                       <div>
                         <Label htmlFor={`submitters.${index}.email`}>
                           Email
@@ -640,6 +762,7 @@ export default function SubmissionsPage() {
                         <Input
                           id={`submitters.${index}.email`}
                           type="email"
+                          placeholder="recipient@example.com"
                           {...register(`submitters.${index}.email`, {
                             required: true,
                           })}
@@ -652,51 +775,35 @@ export default function SubmissionsPage() {
                         </Label>
                         <Input
                           id={`submitters.${index}.name`}
+                          placeholder="John Doe"
                           {...register(`submitters.${index}.name`)}
                           disabled={creating}
                         />
                       </div>
-                      <div>
-                        <Label htmlFor={`submitters.${index}.role`}>
-                          Role (Optional)
-                        </Label>
-                        <Input
-                          id={`submitters.${index}.role`}
-                          {...register(`submitters.${index}.role`)}
-                          disabled={creating}
-                        />
-                      </div>
-                      {index > 0 && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => remove(index)}
-                        >
-                          Remove Submitter
-                        </Button>
-                      )}
                     </div>
                   ))}
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => append({ email: "", name: "", role: "" })}
-                  >
-                    Add Submitter
-                  </Button>
-
-                  <Button
-                    type="submit"
-                    disabled={creating}
-                    className="bg-[#3b0764] hover:bg-[#1e0836]"
-                  >
-                    {creating && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Create
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleMobileDialogClose(false)}
+                      disabled={creating}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={creating || !selectedTemplateDetails}
+                      className="bg-[#3b0764] hover:bg-[#1e0836] flex-1"
+                    >
+                      {creating && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Create Submission
+                    </Button>
+                  </div>
                 </form>
               </DialogContent>
             </Dialog>
@@ -772,9 +879,9 @@ export default function SubmissionsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[40%]">Template</TableHead>
-                      <TableHead className="w-[20%]">Status</TableHead>
-                      <TableHead className="w-[25%]">Recipient</TableHead>
+                      <TableHead className="w-[30%]">Template</TableHead>
+                      <TableHead className="w-[15%]">Overall Status</TableHead>
+                      <TableHead className="w-[40%]">Parties Status</TableHead>
                       <TableHead className="w-[15%]">Created</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -801,41 +908,42 @@ export default function SubmissionsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            className={getStatusBadgeVariant(submission.status)}
+                            variant="secondary"
+                            className={`${getStatusBadgeVariant(
+                              submission.status
+                            )} border-0`}
                           >
-                            {submission.status}
+                            {submission.status.toUpperCase()}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted">
-                              <User className="h-3 w-3" />
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium">
-                                {submission.submitters
-                                  .map((s) => s.name || "No Name")
-                                  .join(", ")}
+                          <div className="space-y-1">
+                            {submission.submitter_status && submission.submitter_status.length > 0 ? (
+                              submission.submitter_status.map((status) => (
+                                <div key={status.id} className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-700">{status.role || "Party"}:</span>
+                                    <span className="text-gray-500 truncate max-w-[150px]" title={status.email}>{status.email}</span>
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-xs ${getStatusBadgeVariant(status.status)}`}
+                                  >
+                                    {status.status.toUpperCase()}
+                                  </Badge>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-sm text-gray-500">
+                                {submission.submitters.map(s => s.email).join(", ")}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {submission.submitters
-                                  .map((s) => s.email)
-                                  .join(", ")}
-                              </div>
-                            </div>
+                            )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-3 w-3" />
-                            <span className="text-sm">
-                              {new Date(
-                                submission.created_at
-                              ).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </span>
+                        <TableCell>
+                          <div className="flex items-center text-muted-foreground">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {new Date(submission.created_at).toLocaleDateString()}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -847,58 +955,60 @@ export default function SubmissionsPage() {
               {/* Mobile Card View */}
               <div className="grid gap-4 md:hidden">
                 {filteredSubmissions.map((submission) => (
-                  <Card
-                    key={submission.id}
-                    className="shadow-sm border-2 border-gray-200"
-                  >
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center justify-between">
+                  <Card key={submission.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50">
-                            <Send className="h-4 w-4 text-green-600" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 dark:bg-green-950/50">
+                            <Send className="h-5 w-5 text-green-600 dark:text-green-400" />
                           </div>
                           <div>
                             <div className="font-medium">
                               {submission.template.name}
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                               ID: {submission.id}
                             </div>
                           </div>
                         </div>
                         <Badge
-                          className={getStatusBadgeVariant(submission.status)}
+                          variant="secondary"
+                          className={`${getStatusBadgeVariant(
+                            submission.status
+                          )} border-0`}
                         >
-                          {submission.status}
+                          {submission.status.toUpperCase()}
                         </Badge>
                       </div>
 
-                      <div className="flex items-center space-x-2 text-sm">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
-                          {submission.submitters
-                            .map((s) => s.name || "No Name")
-                            .join(", ")}
-                        </span>
-                        <span className="text-muted-foreground">
-                          (
-                          {submission.submitters.map((s) => s.email).join(", ")}
-                          )
-                        </span>
-                      </div>
+                      <div className="space-y-3">
+                        <div className="text-sm">
+                          <span className="font-medium text-gray-500 block mb-1">Parties Status:</span>
+                          <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+                            {submission.submitter_status && submission.submitter_status.length > 0 ? (
+                              submission.submitter_status.map((status) => (
+                                <div key={status.id} className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-700">{status.role || "Party"}:</span>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-xs ${getStatusBadgeVariant(status.status)}`}
+                                  >
+                                    {status.status.toUpperCase()}
+                                  </Badge>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-sm text-gray-500">
+                                {submission.submitters.map(s => s.email).join(", ")}
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {new Date(submission.created_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            }
-                          )}
-                        </span>
+                        <div className="flex items-center text-sm text-muted-foreground pt-2 border-t">
+                          <Calendar className="mr-2 h-4 w-4" />
+                          Created: {new Date(submission.created_at).toLocaleDateString()}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

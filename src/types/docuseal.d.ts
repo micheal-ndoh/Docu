@@ -91,6 +91,22 @@ declare namespace DocuSeal {
     areas: FieldArea[];
   }
 
+  interface SubmitterStatus {
+    id: string;
+    submissionId: string;
+    docusealSubmitterId?: number | null;
+    email: string;
+    name?: string | null;
+    role: string;
+    status: string;
+    sentAt?: string | null;
+    openedAt?: string | null;
+    completedAt?: string | null;
+    declinedAt?: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }
+
   interface Submission {
     id: number;
     name?: string | null;
@@ -112,6 +128,7 @@ declare namespace DocuSeal {
     documents?: SubmissionDocument[];
     schema?: SchemaItem[];
     fields?: Field[];
+    submitter_status?: SubmitterStatus[];
   }
 
   interface Pagination {

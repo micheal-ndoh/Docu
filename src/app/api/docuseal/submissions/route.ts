@@ -28,9 +28,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Get user's submissions from database
+    // Get user's submissions from database with per-party status
     const userSubmissions = await prisma.submission.findMany({
       where: { userId },
+      include: { submitterStatus: true },
     });
 
     const submissionIds = userSubmissions.map(s => s.docusealId);
@@ -112,6 +113,18 @@ export async function GET(request: Request) {
     let submissions = Array.isArray(data) ? data : (data.data || []);
     submissions = submissions.filter((sub: any) => submissionIds.includes(sub.id));
 
+    // Merge local submitter status into the response
+    submissions = submissions.map((sub: any) => {
+      const localSubmission = userSubmissions.find(s => s.docusealId === sub.id);
+      if (localSubmission && localSubmission.submitterStatus && localSubmission.submitterStatus.length > 0) {
+        return {
+          ...sub,
+          submitter_status: localSubmission.submitterStatus, // Add local status data
+        };
+      }
+      return sub;
+    });
+
     if (Array.isArray(data)) {
       return NextResponse.json({ data: submissions });
     }
@@ -150,10 +163,23 @@ export async function POST(request: Request) {
   }
 
   const userEmail = session.user?.email;
+  const userName = session.user?.name;
   const userId = session.user?.id;
 
   if (!userEmail || !userId) {
     return NextResponse.json({ message: "User email or ID not found in session" }, { status: 400 });
+  }
+
+  // Get admin configuration from environment
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminName = process.env.ADMIN_NAME || "Administrator";
+
+  if (!adminEmail) {
+    console.error('ADMIN_EMAIL not configured in environment variables');
+    return NextResponse.json(
+      { message: "Server configuration error: Admin email not configured" },
+      { status: 500 }
+    );
   }
 
   try {
@@ -182,13 +208,13 @@ export async function POST(request: Request) {
       return NextResponse.json(data, { status: 201 });
     }
 
-    // Otherwise expect JSON - forward the entire payload to GIS Docusign API
-    const body = (await request.json()) as Partial<DocuSeal.CreateSubmissionRequest>;
+    // Otherwise expect JSON
+    const body = (await request.json()) as Partial<DocuSeal.CreateSubmissionRequest> & {
+      additional_parties?: Array<{ email: string; name?: string; role?: string }>;
+    };
 
     console.log('Received submission request:', JSON.stringify(body, null, 2));
 
-    // The payload is already in the correct format for GIS Docusign API
-    // Just ensure required fields are present
     if (!body.template_id) {
       console.error('Missing template_id in request body');
       return NextResponse.json(
@@ -197,34 +223,91 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!body.submitters || body.submitters.length === 0) {
-      console.error('Missing or empty submitters array');
+    // Fetch template to determine number of parties required
+    const templateResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'templates' : 'api/templates'}/${body.template_id}`, {
+      headers: {
+        "X-Auth-Token": apiKey,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!templateResponse.ok) {
       return NextResponse.json(
-        { message: "At least one submitter is required", received: body },
-        { status: 400 }
+        { message: "Failed to fetch template details" },
+        { status: 500 }
       );
     }
 
-    // Validate each submitter has an email and add external_id for tracking
-    for (let i = 0; i < body.submitters.length; i++) {
-      if (!body.submitters[i].email) {
-        console.error(`Submitter ${i} missing email`);
+    const template = await templateResponse.json();
+    const requiredParties = template.submitters?.length || 2;
+
+    console.log(`Template requires ${requiredParties} parties`);
+
+    // Build submitters array with smart auto-fill
+    // Party 1: Admin (always first)
+    // Party 2: Student (logged-in user, always second)
+    // Party 3+: Additional parties from request body
+
+    const submitters: any[] = [];
+
+    // Party 1: Admin
+    submitters.push({
+      email: adminEmail,
+      name: adminName,
+      role: template.submitters?.[0]?.name || "First Party",
+    });
+
+    // Party 2: Student (current user)
+    submitters.push({
+      email: userEmail,
+      name: userName || "",
+      role: template.submitters?.[1]?.name || "Second Party",
+    });
+
+    // Party 3+: Additional parties (if template requires more than 2)
+    if (requiredParties > 2) {
+      const additionalParties = body.additional_parties || [];
+
+      if (additionalParties.length !== requiredParties - 2) {
         return NextResponse.json(
-          { message: `Submitter ${i + 1} must have an email address` },
+          {
+            message: `Template requires ${requiredParties} parties. Please provide ${requiredParties - 2} additional ${requiredParties - 2 === 1 ? 'party' : 'parties'}`,
+            required_additional_parties: requiredParties - 2,
+            provided: additionalParties.length
+          },
           { status: 400 }
         );
       }
-      // Add the creator's user ID as external_id to track ownership
-      body.submitters[i].external_id = userId;
-      // Add metadata with creator info
-      body.submitters[i].metadata = {
-        ...body.submitters[i].metadata,
+
+      // Add additional parties
+      additionalParties.forEach((party, index) => {
+        if (!party.email) {
+          throw new Error(`Additional party ${index + 1} must have an email`);
+        }
+        submitters.push({
+          email: party.email,
+          name: party.name || "",
+          role: template.submitters?.[index + 2]?.name || `Party ${index + 3}`,
+        });
+      });
+    }
+
+    // Add metadata to all submitters
+    submitters.forEach((submitter) => {
+      submitter.external_id = userId;
+      submitter.metadata = {
         created_by_user_id: userId,
         created_by_email: userEmail,
       };
-    }
+    });
 
-    console.log('Sending to GIS Docusign API:', JSON.stringify(body, null, 2));
+    const submissionPayload = {
+      template_id: body.template_id,
+      submitters: submitters,
+      send_email: body.send_email !== false, // Default to true
+    };
+
+    console.log('Sending to DocuSeal API:', JSON.stringify(submissionPayload, null, 2));
 
     const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}`, {
       method: 'POST',
@@ -232,58 +315,71 @@ export async function POST(request: Request) {
         'X-Auth-Token': apiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(submissionPayload),
     });
 
     if (!docusealResponse.ok) {
       const errorData = await docusealResponse.json();
-      console.error('GIS Docusign API error:', docusealResponse.status, errorData);
+      console.error('DocuSeal API error:', docusealResponse.status, errorData);
       return NextResponse.json(errorData, {
         status: docusealResponse.status,
       });
     }
 
     const data = await docusealResponse.json();
-    console.log('GIS Docusign API success:', data);
+    console.log('DocuSeal API success:', data);
 
-    // Save submission to database for tracking
+    // Save submission and per-party status to database
     try {
-      // GIS Docusign returns an array of submitters, we need to extract submission_id
-      const submitters = Array.isArray(data) ? data : [data];
-      console.log('Attempting to save to database. Data structure:', JSON.stringify(submitters, null, 2));
+      const submitterResponses = Array.isArray(data) ? data : [data];
+      console.log('Attempting to save to database. Data structure:', JSON.stringify(submitterResponses, null, 2));
 
-      if (submitters.length > 0 && submitters[0].submission_id) {
-        const submissionId = submitters[0].submission_id;
-        const submitterEmail = submitters[0].email;
+      if (submitterResponses.length > 0 && submitterResponses[0].submission_id) {
+        const submissionId = submitterResponses[0].submission_id;
 
-        console.log(`Saving submission ${submissionId} for user ${userId}`);
+        console.log(`Saving submission ${submissionId} with ${submitterResponses.length} parties`);
 
-        // Create submission record
+        // Create submission record with per-party status
         const savedSubmission = await prisma.submission.create({
           data: {
             userId: userId,
             docusealId: submissionId,
-            status: submitters[0].status || 'pending',
-            submitterEmail: submitterEmail,
+            status: 'pending',
+            submitterEmail: userEmail,
+            submitterStatus: {
+              create: submitterResponses.map((submitterResp: any) => ({
+                docusealSubmitterId: submitterResp.id,
+                email: submitterResp.email,
+                name: submitterResp.name || null,
+                role: submitterResp.role || 'Unknown',
+                status: submitterResp.status || 'pending',
+                sentAt: submitterResp.sent_at ? new Date(submitterResp.sent_at) : null,
+                openedAt: submitterResp.opened_at ? new Date(submitterResp.opened_at) : null,
+                completedAt: submitterResp.completed_at ? new Date(submitterResp.completed_at) : null,
+                declinedAt: submitterResp.declined_at ? new Date(submitterResp.declined_at) : null,
+              })),
+            },
+          },
+          include: {
+            submitterStatus: true,
           },
         });
 
-        console.log(`✅ Successfully saved submission ${submissionId} to database:`, savedSubmission);
+        console.log(`✅ Successfully saved submission ${submissionId} with per-party tracking:`, savedSubmission);
       } else {
-        console.error('❌ No submission_id found in response data:', submitters);
+        console.error('❌ No submission_id found in response data:', submitterResponses);
       }
     } catch (dbError) {
       console.error('❌ Error saving submission to database:');
       console.error('Error details:', dbError);
       console.error('Error name:', (dbError as Error).name);
       console.error('Error message:', (dbError as Error).message);
-      console.error('Full error:', JSON.stringify(dbError, null, 2));
       // Don't fail the request if database save fails
     }
 
     return NextResponse.json(data, { status: 201 });
   } catch (error: unknown) {
-    console.error("Error creating GIS Docusign submission:", error);
+    console.error("Error creating DocuSeal submission:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
