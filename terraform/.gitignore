@@ -1,0 +1,29 @@
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+# (Commented out during local testing, uncomment for CI/CD with S3 backend)
+# *.tfstate
+# *.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+.terraformrc
+terraform.rc
+
+./setup-backend.sh
+./BACKEND_SETUP.md *.tfvars
+
+./terraform.tfstate
+./terraform.tfstate.backup
+./terraform.tfvars
+./terraform.*
+
