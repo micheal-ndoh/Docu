@@ -2,15 +2,14 @@
 **/.terraform/*
 
 # .tfstate files
-*.tfstate
-*.tfstate.*
+# (Commented out during local testing, uncomment for CI/CD with S3 backend)
+# *.tfstate
+# *.tfstate.*
 
 # Crash log files
 crash.log
 crash.*.log
 
-*.tfvars
-*.tfvars.json
 
 override.tf
 override.tf.json
@@ -21,4 +20,10 @@ override.tf.json
 terraform.rc
 
 ./setup-backend.sh
-./BACKEND_SETUP.md 
+./BACKEND_SETUP.md *.tfvars
+
+./terraform.tfstate
+./terraform.tfstate.backup
+./terraform.tfvars
+./terraform.*
+

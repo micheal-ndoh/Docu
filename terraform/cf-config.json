@@ -1,0 +1,353 @@
+{
+    "ETag": "E20RZOJR5UKQ6V",
+    "DistributionConfig": {
+        "CallerReference": "terraform-20251201180555853800000002",
+        "Aliases": {
+            "Quantity": 0
+        },
+        "DefaultRootObject": "",
+        "Origins": {
+            "Quantity": 2,
+            "Items": [
+                {
+                    "Id": "s3-gis-docuseal-assets",
+                    "DomainName": "gis-docusign-assets.s3.us-east-1.amazonaws.com",
+                    "OriginPath": "",
+                    "CustomHeaders": {
+                        "Quantity": 0
+                    },
+                    "S3OriginConfig": {
+                        "OriginAccessIdentity": "",
+                        "OriginReadTimeout": 30
+                    },
+                    "ConnectionAttempts": 3,
+                    "ConnectionTimeout": 10,
+                    "OriginShield": {
+                        "Enabled": false
+                    },
+                    "OriginAccessControlId": "E2DV5XHFKCX1QA"
+                },
+                {
+                    "Id": "lambda-gis-docuseal-server",
+                    "DomainName": "bimk2yfmvwpgxqythnuus2zuzm0juyen.lambda-url.us-east-1.on.aws",
+                    "OriginPath": "",
+                    "CustomHeaders": {
+                        "Quantity": 0
+                    },
+                    "CustomOriginConfig": {
+                        "HTTPPort": 80,
+                        "HTTPSPort": 443,
+                        "OriginProtocolPolicy": "https-only",
+                        "OriginSslProtocols": {
+                            "Quantity": 1,
+                            "Items": [
+                                "TLSv1.2"
+                            ]
+                        },
+                        "OriginReadTimeout": 60,
+                        "OriginKeepaliveTimeout": 60
+                    },
+                    "ConnectionAttempts": 3,
+                    "ConnectionTimeout": 10,
+                    "OriginShield": {
+                        "Enabled": false
+                    },
+                    "OriginAccessControlId": ""
+                }
+            ]
+        },
+        "OriginGroups": {
+            "Quantity": 0
+        },
+        "DefaultCacheBehavior": {
+            "TargetOriginId": "lambda-gis-docuseal-server",
+            "TrustedSigners": {
+                "Enabled": false,
+                "Quantity": 0
+            },
+            "TrustedKeyGroups": {
+                "Enabled": false,
+                "Quantity": 0
+            },
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": {
+                "Quantity": 7,
+                "Items": [
+                    "HEAD",
+                    "DELETE",
+                    "POST",
+                    "GET",
+                    "OPTIONS",
+                    "PUT",
+                    "PATCH"
+                ],
+                "CachedMethods": {
+                    "Quantity": 3,
+                    "Items": [
+                        "HEAD",
+                        "GET",
+                        "OPTIONS"
+                    ]
+                }
+            },
+            "SmoothStreaming": false,
+            "Compress": true,
+            "LambdaFunctionAssociations": {
+                "Quantity": 0
+            },
+            "FunctionAssociations": {
+                "Quantity": 0
+            },
+            "FieldLevelEncryptionId": "",
+            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",
+            "OriginRequestPolicyId": "216adef6-5c7f-47e4-b989-5492eafa07d3",
+            "GrpcConfig": {
+                "Enabled": false
+            }
+        },
+        "CacheBehaviors": {
+            "Quantity": 5,
+            "Items": [
+                {
+                    "PathPattern": "_next/static/*",
+                    "TargetOriginId": "s3-gis-docuseal-assets",
+                    "TrustedSigners": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "TrustedKeyGroups": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "ViewerProtocolPolicy": "redirect-to-https",
+                    "AllowedMethods": {
+                        "Quantity": 3,
+                        "Items": [
+                            "HEAD",
+                            "GET",
+                            "OPTIONS"
+                        ],
+                        "CachedMethods": {
+                            "Quantity": 3,
+                            "Items": [
+                                "HEAD",
+                                "GET",
+                                "OPTIONS"
+                            ]
+                        }
+                    },
+                    "SmoothStreaming": false,
+                    "Compress": true,
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FieldLevelEncryptionId": "",
+                    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                    "GrpcConfig": {
+                        "Enabled": false
+                    }
+                },
+                {
+                    "PathPattern": "*.png",
+                    "TargetOriginId": "s3-gis-docuseal-assets",
+                    "TrustedSigners": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "TrustedKeyGroups": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "ViewerProtocolPolicy": "redirect-to-https",
+                    "AllowedMethods": {
+                        "Quantity": 3,
+                        "Items": [
+                            "HEAD",
+                            "GET",
+                            "OPTIONS"
+                        ],
+                        "CachedMethods": {
+                            "Quantity": 3,
+                            "Items": [
+                                "HEAD",
+                                "GET",
+                                "OPTIONS"
+                            ]
+                        }
+                    },
+                    "SmoothStreaming": false,
+                    "Compress": true,
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FieldLevelEncryptionId": "",
+                    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                    "GrpcConfig": {
+                        "Enabled": false
+                    }
+                },
+                {
+                    "PathPattern": "*.jpg",
+                    "TargetOriginId": "s3-gis-docuseal-assets",
+                    "TrustedSigners": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "TrustedKeyGroups": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "ViewerProtocolPolicy": "redirect-to-https",
+                    "AllowedMethods": {
+                        "Quantity": 3,
+                        "Items": [
+                            "HEAD",
+                            "GET",
+                            "OPTIONS"
+                        ],
+                        "CachedMethods": {
+                            "Quantity": 3,
+                            "Items": [
+                                "HEAD",
+                                "GET",
+                                "OPTIONS"
+                            ]
+                        }
+                    },
+                    "SmoothStreaming": false,
+                    "Compress": true,
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FieldLevelEncryptionId": "",
+                    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                    "GrpcConfig": {
+                        "Enabled": false
+                    }
+                },
+                {
+                    "PathPattern": "*.svg",
+                    "TargetOriginId": "s3-gis-docuseal-assets",
+                    "TrustedSigners": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "TrustedKeyGroups": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "ViewerProtocolPolicy": "redirect-to-https",
+                    "AllowedMethods": {
+                        "Quantity": 3,
+                        "Items": [
+                            "HEAD",
+                            "GET",
+                            "OPTIONS"
+                        ],
+                        "CachedMethods": {
+                            "Quantity": 3,
+                            "Items": [
+                                "HEAD",
+                                "GET",
+                                "OPTIONS"
+                            ]
+                        }
+                    },
+                    "SmoothStreaming": false,
+                    "Compress": true,
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FieldLevelEncryptionId": "",
+                    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                    "GrpcConfig": {
+                        "Enabled": false
+                    }
+                },
+                {
+                    "PathPattern": "*.ico",
+                    "TargetOriginId": "s3-gis-docuseal-assets",
+                    "TrustedSigners": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "TrustedKeyGroups": {
+                        "Enabled": false,
+                        "Quantity": 0
+                    },
+                    "ViewerProtocolPolicy": "redirect-to-https",
+                    "AllowedMethods": {
+                        "Quantity": 3,
+                        "Items": [
+                            "HEAD",
+                            "GET",
+                            "OPTIONS"
+                        ],
+                        "CachedMethods": {
+                            "Quantity": 3,
+                            "Items": [
+                                "HEAD",
+                                "GET",
+                                "OPTIONS"
+                            ]
+                        }
+                    },
+                    "SmoothStreaming": false,
+                    "Compress": true,
+                    "LambdaFunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FunctionAssociations": {
+                        "Quantity": 0
+                    },
+                    "FieldLevelEncryptionId": "",
+                    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+                    "GrpcConfig": {
+                        "Enabled": false
+                    }
+                }
+            ]
+        },
+        "CustomErrorResponses": {
+            "Quantity": 0
+        },
+        "Comment": "GIS DocuSeal CDN",
+        "Logging": {
+            "Enabled": false,
+            "IncludeCookies": false,
+            "Bucket": "",
+            "Prefix": ""
+        },
+        "PriceClass": "PriceClass_All",
+        "Enabled": true,
+        "ViewerCertificate": {
+            "CloudFrontDefaultCertificate": true,
+            "SSLSupportMethod": "vip",
+            "MinimumProtocolVersion": "TLSv1",
+            "CertificateSource": "cloudfront"
+        },
+        "Restrictions": {
+            "GeoRestriction": {
+                "RestrictionType": "none",
+                "Quantity": 0
+            }
+        },
+        "WebACLId": "",
+        "HttpVersion": "http2",
+        "IsIPV6Enabled": true,
+        "ContinuousDeploymentPolicyId": "",
+        "Staging": false
+    }
+}

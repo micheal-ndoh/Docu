@@ -1,10 +1,7 @@
 terraform {
-  backend "s3" {
-    bucket         = "gis-docusign-terraform-state"
-    key            = "production/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "gis-docusign-terraform-locks"
+  # Local backend for testing (switch to S3 for production CI/CD)
+  backend "local" {
+    path = "terraform.tfstate"
   }
 
   required_providers {
@@ -136,7 +133,7 @@ resource "aws_lambda_function" "gis_docuseal_server" {
   filename         = data.archive_file.server_function_zip.output_path
   source_code_hash = data.archive_file.server_function_zip.output_base64sha256
   architectures    = ["x86_64"]
-  timeout          = 30
+  timeout          = 60
   memory_size      = 1024
 
   environment {

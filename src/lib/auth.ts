@@ -72,9 +72,9 @@ export const authOptions: NextAuthOptions = {
       return `${baseUrl}/submissions`;
     },
   },
-  pages: {
-    signIn: '/', // Redirect to home if not authenticated
-  },
+  // pages: {
+  //   signIn: '/', // Removed - let NextAuth redirect to Keycloak
+  // },
   session: {
     strategy: "jwt", // Changed from "database" for troubleshooting
   },
