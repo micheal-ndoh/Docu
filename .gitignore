@@ -41,7 +41,7 @@ node_modules/
 
 # Optional npm cache directory
 .npm
-
+.open-next
 # Optional REPL history
 .node_repl_history
 
@@ -63,7 +63,7 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
-
+*tfstate
 # Vercel
 .vercel
 

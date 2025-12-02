@@ -14,6 +14,7 @@
  */
 const nextConfig = {
   // Any Next.js config options can go here.
+  output: 'standalone',
   transpilePackages: [],
   eslint: {
     ignoreDuringBuilds: true,
