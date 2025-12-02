@@ -1,0 +1,92 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main, del]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.6.0
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build with OpenNext
+        run: npm run build:open-next
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: |
+          terraform plan \
+            -var="database_url=${{ secrets.DATABASE_URL }}" \
+            -var="direct_database_url=${{ secrets.DIRECT_DATABASE_URL }}" \
+            -var="nextauth_url=${{ secrets.NEXTAUTH_URL }}" \
+            -var="nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}" \
+            -var="keycloak_id=${{ secrets.KEYCLOAK_ID }}" \
+            -var="keycloak_secret=${{ secrets.KEYCLOAK_SECRET }}" \
+            -var="keycloak_issuer=${{ secrets.KEYCLOAK_ISSUER }}" \
+            -var="docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" \
+            -var="docuseal_url=${{ secrets.DOCUSEAL_URL }}"
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        run: |
+          terraform apply -auto-approve \
+            -var="database_url=${{ secrets.DATABASE_URL }}" \
+            -var="direct_database_url=${{ secrets.DIRECT_DATABASE_URL }}" \
+            -var="nextauth_url=${{ secrets.NEXTAUTH_URL }}" \
+            -var="nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}" \
+            -var="keycloak_id=${{ secrets.KEYCLOAK_ID }}" \
+            -var="keycloak_secret=${{ secrets.KEYCLOAK_SECRET }}" \
+            -var="keycloak_issuer=${{ secrets.KEYCLOAK_ISSUER }}" \
+            -var="docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" \
+            -var="docuseal_url=${{ secrets.DOCUSEAL_URL }}"
+
+      - name: Get CloudFront URL
+        id: output
+        working-directory: ./terraform
+        run: |
+          CLOUDFRONT_URL=$(terraform output -raw cloudfront_url)
+          echo "cloudfront_url=$CLOUDFRONT_URL" >> $GITHUB_OUTPUT
+          echo "### Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "**CloudFront URL:** $CLOUDFRONT_URL" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deployment Summary
+        run: |
+          echo "✅ Deployment completed successfully"
+          echo "🌐 Application URL: ${{ steps.output.outputs.cloudfront_url }}"
