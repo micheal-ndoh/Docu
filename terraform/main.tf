@@ -55,7 +55,7 @@ resource "null_resource" "docker_push" {
     command = <<EOT
       aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${local.repo_url}
       cd ..
-      docker build --platform linux/amd64 -t ${local.repo_url}:latest .
+      docker build -t ${local.repo_url}:latest .
       docker push ${local.repo_url}:latest
       cd terraform
     EOT
