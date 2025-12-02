@@ -12,6 +12,7 @@ jobs:
   destroy:
     name: Destroy Infrastructure
     runs-on: ubuntu-latest
+    environment: Production
     if: ${{ github.event.inputs.confirmation == 'DESTROY' }}
 
     steps:
