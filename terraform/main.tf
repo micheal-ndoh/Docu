@@ -6,12 +6,6 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-
-  backend "s3" {
-    bucket = "gis-docusign-terraform-state-v2"
-    key    = "terraform.tfstate"
-    region = "eu-central-1"
-  }
 }
 
 # -----------------------
