@@ -188,3 +188,4 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     Name = "${var.project_name}-cloudfront-distribution"
   }
 }
+
