@@ -64,3 +64,9 @@ variable "docuseal_url" {
   description = "DocuSeal service base URL"
   type        = string
 }
+
+variable "image_tag" {
+  description = "Docker image tag to deploy (typically git SHA from CI/CD)"
+  type        = string
+  default     = "latest"
+}
