@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
+// Use /api/submitters for self-hosted, /submitters for hosted
+const getSubmittersApiPath = () => DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'submitters' : 'api/submitters';
+
 export async function GET(request: Request) {
-  const session = await getServerSession(request);
+  const session = await getServerSession(authOptions);
   if (!session) {
     console.warn('[api/docuseal/submitters] no session - proceeding as anonymous');
   }
@@ -62,7 +66,7 @@ export async function GET(request: Request) {
       if (externalId) params.append("external_id", externalId);
     }
 
-    const url = `${DOCUSEAL_API_BASE_URL}/submitters?${params.toString()}`;
+    const url = `${DOCUSEAL_API_BASE_URL}/${getSubmittersApiPath()}?${params.toString()}`;
 
     const docusealResponse = await fetch(url, {
       headers: {
@@ -82,7 +86,7 @@ export async function GET(request: Request) {
     if (Array.isArray(data)) return NextResponse.json({ data });
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error("Error fetching DocuSeal submitters:", error);
+    console.error("Error fetching GIS Docusign submitters:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }

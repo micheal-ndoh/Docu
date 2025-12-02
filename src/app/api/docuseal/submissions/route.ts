@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient({
@@ -10,9 +11,12 @@ export const runtime = 'nodejs';
 
 const DOCUSEAL_API_BASE_URL = process.env.DOCUSEAL_URL || "https://api.docuseal.com";
 
+// Use /api/submissions for self-hosted, /submissions for hosted
+const getSubmissionsApiPath = () => DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'submissions' : 'api/submissions';
+
 export async function GET(request: Request) {
-  const session = await getServerSession(request);
-  
+  const session = await getServerSession(authOptions);
+
   // Require authentication to view submissions
   if (!session) {
     return NextResponse.json({ message: "Unauthorized - please sign in to view submissions" }, { status: 401 });
@@ -27,16 +31,15 @@ export async function GET(request: Request) {
     // Get user's submissions from database
     const userSubmissions = await prisma.submission.findMany({
       where: { userId },
-      include: { template: true },
     });
-    
+
     const submissionIds = userSubmissions.map(s => s.docusealId);
-    
+
     // If user has no submissions, return empty array
     if (submissionIds.length === 0) {
       return NextResponse.json({ data: [], pagination: { count: 0, next: null, prev: null } });
     }
-    
+
     const { searchParams } = new URL(request.url);
 
     // Build query parameters
@@ -60,13 +63,10 @@ export async function GET(request: Request) {
 
     let status = searchParams.get("status") || "";
     // Map frontend status values to API values
-    if (status === "SENT") {
+    if (status === "SENT") { // Map frontend SENT to API's PENDING
       status = "pending";
     }
-    if (status === "OPENED") {
-      status = ""; // API doesn't support 'opened' filter
-    }
-    if (status && status !== "ALL") {
+    if (status && status !== "ALL") { // Only append status if it's not ALL
       params.append("status", status);
     }
 
@@ -90,7 +90,7 @@ export async function GET(request: Request) {
       params.append("archived", searchParams.get("archived")!);
     }
 
-    const url = `${DOCUSEAL_API_BASE_URL}/submissions?${params.toString()}`;
+    const url = `${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}?${params.toString()}`;
 
     const docusealResponse = await fetch(url, {
       headers: {
@@ -107,17 +107,17 @@ export async function GET(request: Request) {
     }
 
     const data = await docusealResponse.json();
-    
+
     // Filter submissions to only include user's submissions
     let submissions = Array.isArray(data) ? data : (data.data || []);
     submissions = submissions.filter((sub: any) => submissionIds.includes(sub.id));
-    
+
     if (Array.isArray(data)) {
       return NextResponse.json({ data: submissions });
     }
     return NextResponse.json({ ...data, data: submissions });
   } catch (error: unknown) {
-    console.error("Error fetching DocuSeal submissions:", error);
+    console.error("Error fetching GIS Docusign submissions:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
   }
 }
 
-// Helper function to sync submission status from DocuSeal
+// Helper function to sync submission status from GIS Docusign
 export async function syncSubmissionStatus(submissionId: number, status: string) {
   try {
     await prisma.submission.update({
@@ -138,7 +138,8 @@ export async function syncSubmissionStatus(submissionId: number, status: string)
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(request);
+  const session = await getServerSession(authOptions);
+
   // Accept API key either from server env or from an incoming header.
   const incomingApiKey = request.headers.get('x-auth-token') || request.headers.get('X-Auth-Token');
   const apiKey = process.env.DOCUSEAL_API_KEY ?? incomingApiKey ?? '';
@@ -150,7 +151,7 @@ export async function POST(request: Request) {
 
   const userEmail = session.user?.email;
   const userId = session.user?.id;
-  
+
   if (!userEmail || !userId) {
     return NextResponse.json({ message: "User email or ID not found in session" }, { status: 400 });
   }
@@ -161,7 +162,7 @@ export async function POST(request: Request) {
     // If multipart/form-data (file uploads), forward the raw request body and content-type header
     if (contentType.startsWith('multipart/form-data')) {
       const rawBody = await request.arrayBuffer();
-      const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/submissions`, {
+      const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}`, {
         method: 'POST',
         headers: {
           'X-Auth-Token': apiKey,
@@ -181,12 +182,12 @@ export async function POST(request: Request) {
       return NextResponse.json(data, { status: 201 });
     }
 
-    // Otherwise expect JSON - forward the entire payload to DocuSeal API
+    // Otherwise expect JSON - forward the entire payload to GIS Docusign API
     const body = (await request.json()) as Partial<DocuSeal.CreateSubmissionRequest>;
 
     console.log('Received submission request:', JSON.stringify(body, null, 2));
 
-    // The payload is already in the correct format for DocuSeal API
+    // The payload is already in the correct format for GIS Docusign API
     // Just ensure required fields are present
     if (!body.template_id) {
       console.error('Missing template_id in request body');
@@ -223,9 +224,9 @@ export async function POST(request: Request) {
       };
     }
 
-    console.log('Sending to DocuSeal API:', JSON.stringify(body, null, 2));
+    console.log('Sending to GIS Docusign API:', JSON.stringify(body, null, 2));
 
-    const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/submissions`, {
+    const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}`, {
       method: 'POST',
       headers: {
         'X-Auth-Token': apiKey,
@@ -236,68 +237,53 @@ export async function POST(request: Request) {
 
     if (!docusealResponse.ok) {
       const errorData = await docusealResponse.json();
-      console.error('DocuSeal API error:', docusealResponse.status, errorData);
+      console.error('GIS Docusign API error:', docusealResponse.status, errorData);
       return NextResponse.json(errorData, {
         status: docusealResponse.status,
       });
     }
 
     const data = await docusealResponse.json();
-    console.log('DocuSeal API success:', data);
-    
+    console.log('GIS Docusign API success:', data);
+
     // Save submission to database for tracking
     try {
-      // DocuSeal returns an array of submitters, we need to extract submission_id
+      // GIS Docusign returns an array of submitters, we need to extract submission_id
       const submitters = Array.isArray(data) ? data : [data];
+      console.log('Attempting to save to database. Data structure:', JSON.stringify(submitters, null, 2));
+
       if (submitters.length > 0 && submitters[0].submission_id) {
         const submissionId = submitters[0].submission_id;
         const submitterEmail = submitters[0].email;
-        
-        // Check if template exists in our database, if not create it
-        let template = await prisma.template.findUnique({
-          where: { docusealId: body.template_id }
-        });
-        
-        if (!template) {
-          // Fetch template info from DocuSeal to get the name
-          const templateResp = await fetch(`${DOCUSEAL_API_BASE_URL}/templates/${body.template_id}`, {
-            headers: {
-              "X-Auth-Token": apiKey,
-              "Content-Type": "application/json",
-            },
-          });
-          const templateData = await templateResp.json();
-          
-          template = await prisma.template.create({
-            data: {
-              userId: userId,
-              docusealId: body.template_id,
-              name: templateData.name || 'Untitled Template',
-            },
-          });
-        }
-        
+
+        console.log(`Saving submission ${submissionId} for user ${userId}`);
+
         // Create submission record
-        await prisma.submission.create({
+        const savedSubmission = await prisma.submission.create({
           data: {
             userId: userId,
             docusealId: submissionId,
-            templateId: template.id,
             status: submitters[0].status || 'pending',
             submitterEmail: submitterEmail,
           },
         });
-        
-        console.log(`Saved submission ${submissionId} to database for user ${userId}`);
+
+        console.log(`✅ Successfully saved submission ${submissionId} to database:`, savedSubmission);
+      } else {
+        console.error('❌ No submission_id found in response data:', submitters);
       }
     } catch (dbError) {
-      console.error('Error saving submission to database:', dbError);
+      console.error('❌ Error saving submission to database:');
+      console.error('Error details:', dbError);
+      console.error('Error name:', (dbError as Error).name);
+      console.error('Error message:', (dbError as Error).message);
+      console.error('Full error:', JSON.stringify(dbError, null, 2));
       // Don't fail the request if database save fails
     }
-    
+
     return NextResponse.json(data, { status: 201 });
   } catch (error: unknown) {
-    console.error("Error creating DocuSeal submission:", error);
+    console.error("Error creating GIS Docusign submission:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: (error as Error).message ?? String(error) },
       { status: 500 }

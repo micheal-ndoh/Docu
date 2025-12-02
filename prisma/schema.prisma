@@ -8,89 +8,64 @@ datasource db {
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
+// NextAuth Models
 model Account {
-  id                    String    @id @default(cuid())
-  userId                String
-  scope                 String?
-  accessToken           String?
-  accessTokenExpiresAt  DateTime?
-  accountId             String    @default("")
-  createdAt             DateTime  @default(now())
-  idToken               String?
-  password              String?
-  providerId            String    @default("credentials")
-  refreshToken          String?
-  refreshTokenExpiresAt DateTime?
-  updatedAt             DateTime  @default(now()) @updatedAt
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
-  @@unique([providerId, accountId])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  ipAddress String?
-  token     String   @unique
-  updatedAt DateTime @updatedAt
-  userAgent String?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
   id            String       @id @default(cuid())
   name          String?
   email         String       @unique
+  emailVerified DateTime?
   image         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @default(now())
-  emailVerified Boolean      @default(false)
   accounts      Account[]
   sessions      Session[]
-  templates     Template[]
   submissions   Submission[]
-}
-
-model Template {
-  id           String       @id @default(cuid())
-  userId       String
-  docusealId   Int          @unique // DocuSeal template ID
-  name         String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  submissions  Submission[]
-
-  @@index([userId])
-  @@index([docusealId])
 }
 
 model Submission {
   id             String   @id @default(cuid())
   userId         String
-  docusealId     Int      @unique // DocuSeal submission ID
-  templateId     String
+  docusealId     Int      @unique // GIS Docusign submission ID
   status         String   @default("pending")
   submitterEmail String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template       Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([docusealId])
   @@index([submitterEmail])
 }
 
-model Verification {
-  id         String   @id
+model VerificationToken {
   identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime
+  token      String   @unique
+  expires    DateTime
 
-  @@unique([identifier, value])
+  @@unique([identifier, token])
 }

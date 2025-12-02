@@ -62,7 +62,7 @@ export function Features() {
         {/* Section Title */}
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900 inline-block group cursor-default">
-            Why DocuSeal
+            Why GIS Docusign
             <div className="relative mx-auto w-32 mt-3">
               <div className="h-1.5 bg-gradient-to-r from-[#3b0764] via-[#6b21a8] to-[#3b0764] rounded-full shadow-lg shadow-purple-500/50 group-hover:shadow-purple-500/80 group-hover:scale-110 transition-all duration-300"></div>
             </div>
