@@ -1,5 +1,0 @@
-# Ignore local state files from backend-setup
-*.tfstate
-*.tfstate.*
-.terraform/
-.terraform.lock.hcl
