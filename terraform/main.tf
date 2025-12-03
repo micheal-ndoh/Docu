@@ -114,7 +114,7 @@ resource "aws_lambda_function" "web" {
     }
   }
 
-  depends_on = [aws_iam_role_policy_attachment.lambda_basic]
+  depends_on = [aws_iam_role_policy_attachment.lambda_basic, null_resource.docker_push]
 }
 
 resource "aws_lambda_function_url" "web" {
