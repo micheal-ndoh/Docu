@@ -62,11 +62,6 @@ resource "null_resource" "docker_push" {
   }
 }
 
-data "aws_ecr_image" "latest" {
-  repository_name = aws_ecr_repository.main.name
-  image_tag       = "latest"
-  depends_on      = [null_resource.docker_push]
-}
 
 # Lambda from ECR image + Function URL
 
@@ -95,7 +90,7 @@ resource "aws_lambda_function" "web" {
   function_name = var.project_name
   role          = aws_iam_role.lambda_execution.arn
   package_type  = "Image"
-  image_uri     = "${local.repo_url}:latest"
+  image_uri     = "${local.repo_url}:${var.image_tag}"
   architectures = ["x86_64"]
   timeout       = 30
   memory_size   = 1024
@@ -119,7 +114,7 @@ resource "aws_lambda_function" "web" {
     }
   }
 
-  depends_on = [data.aws_ecr_image.latest, aws_iam_role_policy_attachment.lambda_basic]
+  depends_on = [aws_iam_role_policy_attachment.lambda_basic]
 }
 
 resource "aws_lambda_function_url" "web" {
