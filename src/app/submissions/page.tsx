@@ -74,6 +74,7 @@ import {
   LogOut,
   Check,
   PenTool,
+  FileEdit,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -946,10 +947,10 @@ export default function SubmissionsPage() {
                                           <Button
                                             variant="default"
                                             size="sm"
-                                            className="h-6 w-28 text-xs px-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white"
+                                            className="h-6 w-28 text-xs px-2 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-sm"
                                             onClick={() => window.open(status.embedSrc!, '_blank')}
                                           >
-                                            <PenTool className="h-3 w-3 mr-1" />
+                                            <FileEdit className="h-3 w-3 mr-1" />
                                             Sign Now
                                           </Button>
                                         ) : (
