@@ -40,7 +40,45 @@ locals {
   repo_url = aws_ecr_repository.main.repository_url
 }
 
-# IAM Role for Lambda
+data "archive_file" "source" {
+  type        = "zip"
+  source_dir  = ".."
+  output_path = "/tmp/source.zip"
+  excludes = [
+    ".terraform",
+    ".git",
+    "terraform/.terraform.lock.hcl",
+    "node_modules",
+    ".next"
+  ]
+}
+
+resource "null_resource" "docker_push" {
+  depends_on = [aws_ecr_repository.main]
+
+  triggers = {
+    source_code_hash = data.archive_file.source.output_sha
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+      aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${local.repo_url}
+      cd ..
+      docker build -t ${local.repo_url}:latest .
+      docker push ${local.repo_url}:latest
+      cd terraform
+    EOT
+  }
+}
+
+data "aws_ecr_image" "latest" {
+  repository_name = aws_ecr_repository.main.name
+  image_tag       = "latest"
+  depends_on      = [null_resource.docker_push]
+}
+
+# Lambda from ECR image + Function URL
+
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -154,3 +192,4 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     Name = "${var.project_name}-cloudfront-distribution"
   }
 }
+

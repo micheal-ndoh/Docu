@@ -10,6 +10,16 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+ENV CI=false
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+ENV DIRECT_DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+ENV NEXTAUTH_URL="https://dummy.com"
+ENV NEXTAUTH_SECRET="dummy"
+ENV KEYCLOAK_ID="dummy"
+ENV KEYCLOAK_SECRET="dummy"
+ENV KEYCLOAK_ISSUER="https://dummy.com"
+ENV DOCUSEAL_API_KEY="dummy"
+ENV DOCUSEAL_URL="https://dummy.com"
 RUN npx prisma generate
 RUN npm run build
 
@@ -32,7 +42,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone .
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Lambda will route traffic via the adapter to this port
+# Lambda will route traffic via the adapter to this  port
 EXPOSE 3000
 
 

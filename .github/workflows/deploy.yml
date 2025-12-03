@@ -1,142 +1,94 @@
-name: Deploy to AWS
+name: Terraform Deployment
 
 on:
-  push:
-    branches: [main, del, infra-auto]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment name"
+        required: true
+        type: choice
+        options:
+          - production
+          - dev
+          - staging
 
-env:
-  AWS_REGION: eu-central-1
-  TF_VERSION: 1.6.0
+defaults:
+  run:
+    working-directory: ./terraform
 
 jobs:
   deploy:
-    name: Build and Deploy
     runs-on: ubuntu-latest
-
+    name: Deploy to ${{ inputs.environment }} Environment
+    environment:
+      name: ${{ inputs.environment }}
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        run: npx prisma generate
+          terraform_version: "1.9.8"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: eu-central-1
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Get ECR repository name
-        id: ecr-repo
+      - name: Set Environment Variables
         run: |
-          echo "repository=gis-docusign-mich" >> $GITHUB_OUTPUT
-          echo "registry=${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_OUTPUT
+          echo "TF_VAR_project_name=gis-docusign-${{ inputs.environment }}" >> $GITHUB_ENV
+          echo "TF_VAR_aws_region=eu-central-1" >> $GITHUB_ENV
 
-      - name: Build Docker image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ steps.ecr-repo.outputs.repository }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Set Sensitive Variables
         run: |
-          echo "Building Docker image for Lambda..."
-          docker build \
-            --platform linux/amd64 \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-            .
-          echo "Docker image built successfully"
+          echo "TF_VAR_database_url=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_direct_database_url=${{ secrets.DIRECT_DATABASE_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_id=${{ secrets.KEYCLOAK_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_secret=${{ secrets.KEYCLOAK_SECRET }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_issuer=${{ secrets.KEYCLOAK_ISSUER }}" >> $GITHUB_ENV
+          echo "TF_VAR_docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" >> $GITHUB_ENV
+          echo "TF_VAR_docuseal_url=${{ secrets.DOCUSEAL_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_nextauth_url=${{ vars.NEXTAUTH_URL }}" >> $GITHUB_ENV
 
-      - name: Push Docker image to ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ steps.ecr-repo.outputs.repository }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Create Backend Configuration
         run: |
-          echo "Pushing Docker image to ECR..."
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
+          cat <<EOF > backend.tf
+          terraform {
+            backend "s3" {
+              bucket         = "gis-docusign-${{ inputs.environment }}-terraform-state"
+              key            = "terraform.tfstate"
+              region         = "eu-central-1"
+              encrypt        = true
+            }
+          }
+          EOF
 
       - name: Terraform Init
-        working-directory: ./terraform
         run: terraform init
 
       - name: Terraform Plan
-        working-directory: ./terraform
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          terraform plan \
-            -var="image_tag=$IMAGE_TAG" \
-            -var="database_url=${{ secrets.DATABASE_URL }}" \
-            -var="direct_database_url=${{ secrets.DIRECT_DATABASE_URL }}" \
-            -var="nextauth_url=${{ secrets.NEXTAUTH_URL }}" \
-            -var="nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}" \
-            -var="keycloak_id=${{ secrets.KEYCLOAK_ID }}" \
-            -var="keycloak_secret=${{ secrets.KEYCLOAK_SECRET }}" \
-            -var="keycloak_issuer=${{ secrets.KEYCLOAK_ISSUER }}" \
-            -var="docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" \
-            -var="docuseal_url=${{ secrets.DOCUSEAL_URL }}"
+        run: terraform plan -out=plan.tfplan
 
       - name: Terraform Apply
-        working-directory: ./terraform
+        if: github.event_name == 'workflow_dispatch'
+        run: terraform apply -auto-approve plan.tfplan
+
+      - name: Update NEXTAUTH_URL Variable and Lambda Environment
+        if: github.event_name == 'workflow_dispatch'
         env:
-          IMAGE_TAG: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          terraform apply -auto-approve \
-            -var="image_tag=$IMAGE_TAG" \
-            -var="database_url=${{ secrets.DATABASE_URL }}" \
-            -var="direct_database_url=${{ secrets.DIRECT_DATABASE_URL }}" \
-            -var="nextauth_url=${{ secrets.NEXTAUTH_URL }}" \
-            -var="nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}" \
-            -var="keycloak_id=${{ secrets.KEYCLOAK_ID }}" \
-            -var="keycloak_secret=${{ secrets.KEYCLOAK_SECRET }}" \
-            -var="keycloak_issuer=${{ secrets.KEYCLOAK_ISSUER }}" \
-            -var="docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" \
-            -var="docuseal_url=${{ secrets.DOCUSEAL_URL }}"
+          CF_URL=$(terraform output -raw cloudfront_url)
+          echo "Updating NEXTAUTH_URL to $CF_URL"
+          gh variable set NEXTAUTH_URL --body "$CF_URL" --env ${{ inputs.environment }} || echo "Failed to update GitHub variable, continuing..."
 
-      - name: Get Deployment Outputs
-        id: output
-        working-directory: ./terraform
-        run: |
-          CLOUDFRONT_URL=$(terraform output -raw cloudfront_url)
-          LAMBDA_URL=$(terraform output -raw lambda_function_url)
-          ECR_REPO=$(terraform output -raw ecr_repository_url)
-          
-          echo "cloudfront_url=$CLOUDFRONT_URL" >> $GITHUB_OUTPUT
-          echo "lambda_url=$LAMBDA_URL" >> $GITHUB_OUTPUT
-          echo "ecr_repo=$ECR_REPO" >> $GITHUB_OUTPUT
-          
-          echo "### Deployment Successful! 🚀" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**CloudFront URL:** $CLOUDFRONT_URL" >> $GITHUB_STEP_SUMMARY
-          echo "**Lambda Function URL:** $LAMBDA_URL" >> $GITHUB_STEP_SUMMARY
-          echo "**ECR Repository:** $ECR_REPO" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Tag:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Deployment Summary
-        run: |
-          echo "✅ Deployment completed successfully"
-          echo "🌐 Application URL: ${{ steps.output.outputs.cloudfront_url }}"
-          echo "⚡ Lambda URL: ${{ steps.output.outputs.lambda_url }}"
-          echo "📦 Image Tag: ${{ github.sha }}"
+          # Update Lambda environment variable
+          FUNCTION_NAME="gis-docusign-${{ inputs.environment }}"
+          aws lambda update-function-configuration \
+            --function-name "$FUNCTION_NAME" \
+            --environment "Variables={DATABASE_URL=${{ secrets.DATABASE_URL }},DIRECT_DATABASE_URL=${{ secrets.DIRECT_DATABASE_URL }},NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }},NEXTAUTH_URL=$CF_URL,KEYCLOAK_ID=${{ secrets.KEYCLOAK_ID }},KEYCLOAK_SECRET=${{ secrets.KEYCLOAK_SECRET }},KEYCLOAK_ISSUER=${{ secrets.KEYCLOAK_ISSUER }},DOCUSEAL_API_KEY=${{ secrets.DOCUSEAL_API_KEY }},DOCUSEAL_URL=${{ secrets.DOCUSEAL_URL }},PORT=3000,RUST_LOG=info,AWS_LWA_INVOKE_MODE=buffered}"

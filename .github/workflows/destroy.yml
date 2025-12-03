@@ -1,66 +1,79 @@
-name: Destroy AWS Infrastructure
+name: Terraform Destroy
 
 on:
   workflow_dispatch:
     inputs:
-      confirmation:
-        description: 'Type "destroy" to confirm'
+      environment:
+        description: "Environment name"
         required: true
-        default: ''
+        type: choice
+        options:
+          - production
+          - dev
+          - staging
 
-env:
-  AWS_REGION: eu-central-1
-  TF_VERSION: 1.6.0
+defaults:
+  run:
+    working-directory: ./terraform
 
 jobs:
   destroy:
-    name: Destroy Infrastructure
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.confirmation == 'DESTROY' }}
-    
+    name: Destroy ${{ inputs.environment }} Environment
+    environment:
+      name: ${{ inputs.environment }}
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      # We need to build to ensure .open-next directories exist for Terraform fileset() functions
-      - name: Build with OpenNext
-        run: npm run build:open-next
+          terraform_version: "1.9.8"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: eu-central-1
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
+      - name: Set Environment Variables
+        run: |
+          echo "TF_VAR_project_name=gis-docusign-${{ inputs.environment }}" >> $GITHUB_ENV
+          echo "TF_VAR_aws_region=eu-central-1" >> $GITHUB_ENV
+
+      - name: Set Sensitive Variables
+        run: |
+          echo "TF_VAR_database_url=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_direct_database_url=${{ secrets.DIRECT_DATABASE_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_id=${{ secrets.KEYCLOAK_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_secret=${{ secrets.KEYCLOAK_SECRET }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_issuer=${{ secrets.KEYCLOAK_ISSUER }}" >> $GITHUB_ENV
+          echo "TF_VAR_docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" >> $GITHUB_ENV
+          echo "TF_VAR_docuseal_url=${{ secrets.DOCUSEAL_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_nextauth_url=${{ vars.NEXTAUTH_URL }}" >> $GITHUB_ENV
+
+      - name: Create Backend Configuration
+        run: |
+          cat <<EOF > backend.tf
+          terraform {
+            backend "s3" {
+              bucket         = "gis-docusign-${{ inputs.environment }}-terraform-state"
+              key            = "terraform.tfstate"
+              region         = "eu-central-1"
+              encrypt        = true
+            }
+          }
+          EOF
 
       - name: Terraform Init
-        working-directory: ./terraform
         run: terraform init
 
+      - name: Terraform Plan Destroy
+        run: terraform plan -destroy -out=destroy.tfplan
+
       - name: Terraform Destroy
-        working-directory: ./terraform
-        run: |
-          terraform destroy -auto-approve \
-            -var="database_url=${{ secrets.DATABASE_URL }}" \
-            -var="direct_database_url=${{ secrets.DIRECT_DATABASE_URL }}" \
-            -var="nextauth_url=${{ secrets.NEXTAUTH_URL }}" \
-            -var="nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}" \
-            -var="keycloak_id=${{ secrets.KEYCLOAK_ID }}" \
-            -var="keycloak_secret=${{ secrets.KEYCLOAK_SECRET }}" \
-            -var="keycloak_issuer=${{ secrets.KEYCLOAK_ISSUER }}" \
-            -var="docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" \
-            -var="docuseal_url=${{ secrets.DOCUSEAL_URL }}"
+        if: github.event_name == 'workflow_dispatch'
+        run: terraform destroy -auto-approve
