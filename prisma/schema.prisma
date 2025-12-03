@@ -75,6 +75,7 @@ model SubmitterStatus {
   email               String
   name                String?
   role                String // e.g., "Admin", "Student", "Parent"
+  embedSrc            String? // Direct signing link from DocuSeal
   
   // Status tracking
   status      String    @default("pending") // pending, sent, opened, completed, declined

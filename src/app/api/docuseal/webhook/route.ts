@@ -59,6 +59,13 @@ export async function POST(request: Request) {
                 await handleSubmissionCompleted(data);
                 break;
 
+            // Email delivery failure events
+            case 'bounce_email':
+            case 'complaint_email':
+                console.error(`⚠️ EMAIL DELIVERY FAILED: ${eventType}`, JSON.stringify(data, null, 2));
+                // We could also update the database here if we had a status for it
+                break;
+
             default:
                 console.log(`Unhandled webhook event: ${eventType}`);
         }
@@ -119,7 +126,9 @@ async function handleSubmitterCompleted(data: any) {
         const submitterId = Number(data.id);
         const completedAt = data.completed_at ? new Date(data.completed_at) : new Date();
 
-        await prisma.submitterStatus.updateMany({
+        console.log(`Processing submitter.completed for ID: ${submitterId}`);
+
+        const result = await prisma.submitterStatus.updateMany({
             where: { docusealSubmitterId: submitterId },
             data: {
                 status: 'completed',
@@ -127,7 +136,11 @@ async function handleSubmitterCompleted(data: any) {
             },
         });
 
-        console.log(`✅ Updated submitter ${submitterId} status to 'completed'`);
+        console.log(`✅ Updated submitter ${submitterId} status to 'completed'. Count: ${result.count}`);
+
+        if (result.count === 0) {
+            console.warn(`⚠️ No submitter found with docusealSubmitterId: ${submitterId}`);
+        }
     } catch (error) {
         console.error('Error handling submitter.completed:', error);
     }

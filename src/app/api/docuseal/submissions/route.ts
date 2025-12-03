@@ -114,16 +114,65 @@ export async function GET(request: Request) {
     submissions = submissions.filter((sub: any) => submissionIds.includes(sub.id));
 
     // Merge local submitter status into the response
-    submissions = submissions.map((sub: any) => {
+    // Sync local DB with fresh data from DocuSeal
+    const syncPromises = submissions.map(async (sub: any) => {
       const localSubmission = userSubmissions.find(s => s.docusealId === sub.id);
-      if (localSubmission && localSubmission.submitterStatus && localSubmission.submitterStatus.length > 0) {
+
+      if (localSubmission) {
+        // 1. Update overall status if changed
+        if (localSubmission.status !== sub.status) {
+          await prisma.submission.update({
+            where: { id: localSubmission.id },
+            data: { status: sub.status }
+          });
+        }
+
+        // 2. Update submitter statuses
+        if (sub.submitters && Array.isArray(sub.submitters)) {
+          for (const apiSubmitter of sub.submitters) {
+            const localSubmitter = localSubmission.submitterStatus.find(
+              s => s.email === apiSubmitter.email || s.docusealSubmitterId === apiSubmitter.id
+            );
+
+            if (localSubmitter && (localSubmitter.status !== apiSubmitter.status || !localSubmitter.embedSrc)) {
+              await prisma.submitterStatus.update({
+                where: { id: localSubmitter.id },
+                data: {
+                  status: apiSubmitter.status,
+                  embedSrc: apiSubmitter.embed_src || localSubmitter.embedSrc,
+                  openedAt: apiSubmitter.opened_at ? new Date(apiSubmitter.opened_at) : localSubmitter.openedAt,
+                  completedAt: apiSubmitter.completed_at ? new Date(apiSubmitter.completed_at) : localSubmitter.completedAt,
+                }
+              });
+            }
+          }
+        }
+
+        // Return the merged object with FRESH data from API mapped to local structure
+        // We construct submitter_status from the API response to ensure frontend gets latest data
         return {
           ...sub,
-          submitter_status: localSubmission.submitterStatus, // Add local status data
+          submitter_status: sub.submitters.map((s: any) => {
+            const localSubmitter = localSubmission.submitterStatus.find(
+              ls => ls.email === s.email || ls.docusealSubmitterId === s.id
+            );
+            return {
+              id: s.id, // Use DocuSeal ID temporarily or map to local ID if needed, but for display API data is fine
+              email: s.email,
+              role: s.role,
+              status: s.status,
+              embedSrc: s.embed_src || localSubmitter?.embedSrc, // Fallback to local DB if API doesn't return it
+              sentAt: s.sent_at,
+              openedAt: s.opened_at,
+              completedAt: s.completed_at
+            };
+          })
         };
       }
       return sub;
     });
+
+    submissions = await Promise.all(syncPromises);
 
     if (Array.isArray(data)) {
       return NextResponse.json({ data: submissions });
@@ -244,27 +293,21 @@ export async function POST(request: Request) {
     console.log(`Template requires ${requiredParties} parties`);
 
     // Build submitters array with smart auto-fill
-    // Party 1: Admin (always first)
-    // Party 2: Student (logged-in user, always second)
-    // Party 3+: Additional parties from request body
+    // Party 1: Student (logged-in user, signs first)
+    // Party 2+: Additional parties (if any)
+    // Last Party: Admin (signs last for approval)
 
     const submitters: any[] = [];
 
-    // Party 1: Admin
-    submitters.push({
-      email: adminEmail,
-      name: adminName,
-      role: template.submitters?.[0]?.name || "First Party",
-    });
-
-    // Party 2: Student (current user)
+    // Party 1: Student (current user) - signs first
     submitters.push({
       email: userEmail,
       name: userName || "",
-      role: template.submitters?.[1]?.name || "Second Party",
+      role: template.submitters?.[0]?.name || "Student",
+      send_email: true, // Explicitly send email to first party
     });
 
-    // Party 3+: Additional parties (if template requires more than 2)
+    // Party 2+: Additional parties (if template requires more than 2)
     if (requiredParties > 2) {
       const additionalParties = body.additional_parties || [];
 
@@ -287,10 +330,21 @@ export async function POST(request: Request) {
         submitters.push({
           email: party.email,
           name: party.name || "",
-          role: template.submitters?.[index + 2]?.name || `Party ${index + 3}`,
+          role: template.submitters?.[index + 1]?.name || `Party ${index + 2}`,
+          send_email: true, // Ensure email is sent when their turn comes
+          send_sms: false,
         });
       });
     }
+
+    // Last Party: Admin - signs last for approval
+    submitters.push({
+      email: adminEmail,
+      name: adminName,
+      role: template.submitters?.[requiredParties - 1]?.name || "Administrator",
+      send_email: true, // Ensure email is sent when their turn comes
+      send_sms: false,
+    });
 
     // Add metadata to all submitters
     submitters.forEach((submitter) => {
@@ -305,6 +359,7 @@ export async function POST(request: Request) {
       template_id: body.template_id,
       submitters: submitters,
       send_email: body.send_email !== false, // Default to true
+      // Order defaults to 'preserved' for sequential signing
     };
 
     console.log('Sending to DocuSeal API:', JSON.stringify(submissionPayload, null, 2));
@@ -329,9 +384,27 @@ export async function POST(request: Request) {
     const data = await docusealResponse.json();
     console.log('DocuSeal API success:', data);
 
+    // Diagnostic logging for email delivery
+    console.log('\n=== EMAIL DELIVERY DIAGNOSTICS ===');
+    const submitterResponses = Array.isArray(data) ? data : [data];
+    submitterResponses.forEach((submitter: any, index: number) => {
+      console.log(`\nSubmitter ${index + 1}:`);
+      console.log(`  Email: ${submitter.email}`);
+      console.log(`  Status: ${submitter.status}`);
+      console.log(`  Sent At: ${submitter.sent_at || 'Not sent'}`);
+      console.log(`  Preferences:`, submitter.preferences);
+      console.log(`  Embed Link: ${submitter.embed_src}`);
+
+      if (submitter.status === 'awaiting') {
+        console.log(`  ⚠️  Email will be sent when previous party signs (sequential mode)`);
+      } else if (submitter.status === 'sent' && !submitter.opened_at) {
+        console.log(`  ⚠️  Email sent but not opened yet - Check spam folder or email bounces`);
+      }
+    });
+    console.log('==================================\n');
+
     // Save submission and per-party status to database
     try {
-      const submitterResponses = Array.isArray(data) ? data : [data];
       console.log('Attempting to save to database. Data structure:', JSON.stringify(submitterResponses, null, 2));
 
       if (submitterResponses.length > 0 && submitterResponses[0].submission_id) {
@@ -353,6 +426,7 @@ export async function POST(request: Request) {
                 name: submitterResp.name || null,
                 role: submitterResp.role || 'Unknown',
                 status: submitterResp.status || 'pending',
+                embedSrc: submitterResp.embed_src || null, // Save direct signing link
                 sentAt: submitterResp.sent_at ? new Date(submitterResp.sent_at) : null,
                 openedAt: submitterResp.opened_at ? new Date(submitterResp.opened_at) : null,
                 completedAt: submitterResp.completed_at ? new Date(submitterResp.completed_at) : null,

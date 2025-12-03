@@ -72,6 +72,8 @@ import {
   LayoutGrid,
   Menu,
   LogOut,
+  Check,
+  PenTool,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -98,6 +100,14 @@ export default function SubmissionsPage() {
   const [creating, setCreating] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    toast.success("Signing link copied to clipboard");
+    setTimeout(() => setCopiedId(null), 2000);
+  };
   const [isSearchSheetOpen, setIsSearchSheetOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isMobileDialogOpen, setIsMobileDialogOpen] = useState(false);
@@ -570,27 +580,28 @@ export default function SubmissionsPage() {
                   {/* Template Party Info */}
                   {selectedTemplateDetails && !fetchingTemplate && (
                     <div className="rounded-md bg-purple-50 p-4 border border-purple-100">
-                      <h4 className="font-medium text-purple-900 mb-2">Submission Parties</h4>
+                      <h4 className="font-medium text-purple-900 mb-2">Submission Parties (Sequential Signing)</h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center text-gray-700">
-                          <span className="font-semibold w-20">Party 1:</span>
-                          <span>{selectedTemplateDetails.submitters?.[0]?.name || "Admin"} (School Administrator)</span>
-                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
-                        </div>
-                        <div className="flex items-center text-gray-700">
-                          <span className="font-semibold w-20">Party 2:</span>
-                          <span>{selectedTemplateDetails.submitters?.[1]?.name || "Student"} (You)</span>
+                          <span className="font-semibold w-24">Party 1:</span>
+                          <span>{selectedTemplateDetails.submitters?.[0]?.name || "Student"} (You) - Signs First</span>
                           <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
                         </div>
 
                         {/* List additional required parties */}
-                        {selectedTemplateDetails.submitters?.slice(2).map((submitter: any, idx: number) => (
+                        {selectedTemplateDetails.submitters?.slice(1, -1).map((submitter: any, idx: number) => (
                           <div key={idx} className="flex items-center text-gray-700">
-                            <span className="font-semibold w-20">Party {idx + 3}:</span>
+                            <span className="font-semibold w-24">Party {idx + 2}:</span>
                             <span>{submitter.name || "Additional Party"}</span>
                             <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Requires Input</Badge>
                           </div>
                         ))}
+
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-semibold w-24">Last Party:</span>
+                          <span>{selectedTemplateDetails.submitters?.[selectedTemplateDetails.submitters.length - 1]?.name || "Admin"} (School Administrator) - Signs Last</span>
+                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -721,27 +732,28 @@ export default function SubmissionsPage() {
                   {/* Template Party Info */}
                   {selectedTemplateDetails && !fetchingTemplate && (
                     <div className="rounded-md bg-purple-50 p-4 border border-purple-100">
-                      <h4 className="font-medium text-purple-900 mb-2">Submission Parties</h4>
+                      <h4 className="font-medium text-purple-900 mb-2">Submission Parties (Sequential Signing)</h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center text-gray-700">
-                          <span className="font-semibold w-20">Party 1:</span>
-                          <span>{selectedTemplateDetails.submitters?.[0]?.name || "Admin"} (School Administrator)</span>
-                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
-                        </div>
-                        <div className="flex items-center text-gray-700">
-                          <span className="font-semibold w-20">Party 2:</span>
-                          <span>{selectedTemplateDetails.submitters?.[1]?.name || "Student"} (You)</span>
+                          <span className="font-semibold w-24">Party 1:</span>
+                          <span>{selectedTemplateDetails.submitters?.[0]?.name || "Student"} (You) - Signs First</span>
                           <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
                         </div>
 
                         {/* List additional required parties */}
-                        {selectedTemplateDetails.submitters?.slice(2).map((submitter: any, idx: number) => (
+                        {selectedTemplateDetails.submitters?.slice(1, -1).map((submitter: any, idx: number) => (
                           <div key={idx} className="flex items-center text-gray-700">
-                            <span className="font-semibold w-20">Party {idx + 3}:</span>
+                            <span className="font-semibold w-24">Party {idx + 2}:</span>
                             <span>{submitter.name || "Additional Party"}</span>
                             <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Requires Input</Badge>
                           </div>
                         ))}
+
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-semibold w-24">Last Party:</span>
+                          <span>{selectedTemplateDetails.submitters?.[selectedTemplateDetails.submitters.length - 1]?.name || "Admin"} (School Administrator) - Signs Last</span>
+                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -892,17 +904,12 @@ export default function SubmissionsPage() {
                         className="hover:bg-muted/50"
                       >
                         <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 dark:bg-green-950/50">
-                              <Send className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <div className="space-y-1">
+                            <div className="font-bold text-gray-900 dark:text-gray-100">
+                              {submission.template?.name || "Unnamed Template"}
                             </div>
-                            <div>
-                              <div className="font-medium">
-                                {submission.template.name}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                ID: {submission.id}
-                              </div>
+                            <div className="text-sm text-muted-foreground">
+                              ID: {submission.id}
                             </div>
                           </div>
                         </TableCell>
@@ -919,18 +926,56 @@ export default function SubmissionsPage() {
                         <TableCell>
                           <div className="space-y-1">
                             {submission.submitter_status && submission.submitter_status.length > 0 ? (
-                              submission.submitter_status.map((status) => (
-                                <div key={status.id} className="flex items-center justify-between text-sm">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-700">{status.role || "Party"}:</span>
-                                    <span className="text-gray-500 truncate max-w-[150px]" title={status.email}>{status.email}</span>
+                              submission.submitter_status.map((status, index) => (
+                                <div key={status.id} className="flex items-start gap-4 text-sm py-1">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <span className="text-gray-700 font-medium truncate max-w-[200px]" title={status.email}>{status.email}</span>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-xs ${getStatusBadgeVariant(status.status)}`}
+                                    >
+                                      {status.status.toUpperCase()}
+                                    </Badge>
                                   </div>
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-xs ${getStatusBadgeVariant(status.status)}`}
-                                  >
-                                    {status.status.toUpperCase()}
-                                  </Badge>
+                                  <div className="flex items-center">
+                                    {/* Action Buttons */}
+                                    {status.embedSrc && status.status !== 'completed' && (
+                                      <>
+                                        {/* First Party (Student) - Show Sign Now */}
+                                        {index === 0 ? (
+                                          <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="h-6 w-28 text-xs px-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white"
+                                            onClick={() => window.open(status.embedSrc!, '_blank')}
+                                          >
+                                            <PenTool className="h-3 w-3 mr-1" />
+                                            Sign Now
+                                          </Button>
+                                        ) : (
+                                          /* Other Parties - Show Copy Link */
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-6 w-28 text-xs px-2 rounded-full border-gray-300 hover:bg-gray-100"
+                                            onClick={() => copyToClipboard(status.embedSrc!, status.id)}
+                                          >
+                                            {copiedId === status.id ? (
+                                              <>
+                                                <Check className="h-3 w-3 mr-1 text-green-600" />
+                                                <span className="text-green-600">Copied</span>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Copy className="h-3 w-3 mr-1 text-gray-600" />
+                                                <span className="text-gray-600">Copy Link</span>
+                                              </>
+                                            )}
+                                          </Button>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               ))
                             ) : (
@@ -958,17 +1003,12 @@ export default function SubmissionsPage() {
                   <Card key={submission.id} className="overflow-hidden">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50 dark:bg-green-950/50">
-                            <Send className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <div className="space-y-1">
+                          <div className="font-bold text-gray-900 dark:text-gray-100">
+                            {submission.template?.name || "Unnamed Template"}
                           </div>
-                          <div>
-                            <div className="font-medium">
-                              {submission.template.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              ID: {submission.id}
-                            </div>
+                          <div className="text-xs text-muted-foreground">
+                            ID: {submission.id}
                           </div>
                         </div>
                         <Badge
@@ -1015,9 +1055,10 @@ export default function SubmissionsPage() {
                 ))}
               </div>
             </>
-          )}
-        </div>
-      </div>
+          )
+          }
+        </div >
+      </div >
     </>
   );
 }

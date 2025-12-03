@@ -105,6 +105,7 @@ declare namespace DocuSeal {
     declinedAt?: string | null;
     createdAt: string;
     updatedAt: string;
+    embedSrc?: string | null;
   }
 
   interface Submission {
