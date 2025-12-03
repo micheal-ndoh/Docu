@@ -65,6 +65,18 @@ variable "docuseal_url" {
   type        = string
 }
 
+variable "admin_name" {
+  description = "Admin user name "
+  type        = string
+  sensitive   = true
+}
+
+variable "admin_email" {
+  description = "Admin user email "
+  type        = string
+  sensitive   = true
+}
+
 variable "image_tag" {
   description = "Docker image tag to deploy (typically git SHA from CI/CD)"
   type        = string

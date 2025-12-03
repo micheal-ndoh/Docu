@@ -54,6 +54,8 @@ jobs:
           echo "TF_VAR_docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" >> $GITHUB_ENV
           echo "TF_VAR_docuseal_url=${{ secrets.DOCUSEAL_URL }}" >> $GITHUB_ENV
           echo "TF_VAR_nextauth_url=${{ vars.NEXTAUTH_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_admin_name=${{ secrets.ADMIN_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_admin_email=${{ secrets.ADMIN_EMAIL }}" >> $GITHUB_ENV
 
       - name: Create Backend Configuration
         run: |

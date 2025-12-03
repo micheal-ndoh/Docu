@@ -6,15 +6,6 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-
-  # Remote backend for state storage
-  backend "s3" {
-    bucket         = "gis-docusign-mich-terraform-state"
-    key            = "infra/terraform.tfstate"
-    region         = "eu-central-1"
-    encrypt        = true
-    dynamodb_table = "gis-docusign-mich-terraform-locks"
-  }
 }
 
 # -----------------------
@@ -35,7 +26,7 @@ resource "aws_ecr_repository" "main" {
   }
 }
 
-# Local variable for ECR repository URL
+# Push Docker image to ECR
 locals {
   repo_url = aws_ecr_repository.main.repository_url
 }
@@ -104,7 +95,7 @@ resource "aws_lambda_function" "web" {
   function_name = var.project_name
   role          = aws_iam_role.lambda_execution.arn
   package_type  = "Image"
-  image_uri     = "${local.repo_url}:${var.image_tag}"
+  image_uri     = "${local.repo_url}:latest"
   architectures = ["x86_64"]
   timeout       = 30
   memory_size   = 1024
@@ -120,13 +111,15 @@ resource "aws_lambda_function" "web" {
       KEYCLOAK_ISSUER     = var.keycloak_issuer
       DOCUSEAL_API_KEY    = var.docuseal_api_key
       DOCUSEAL_URL        = var.docuseal_url
+      ADMIN_NAME          = var.admin_name
+      ADMIN_EMAIL         = var.admin_email
       PORT                = "3000"
       RUST_LOG            = "info"
       AWS_LWA_INVOKE_MODE = "buffered"
     }
   }
 
-  depends_on = [aws_iam_role_policy_attachment.lambda_basic]
+  depends_on = [data.aws_ecr_image.latest, aws_iam_role_policy_attachment.lambda_basic]
 }
 
 resource "aws_lambda_function_url" "web" {
