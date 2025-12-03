@@ -80,13 +80,15 @@ jobs:
 
       - name: Update NEXTAUTH_URL Variable and Lambda Environment
         if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           CF_URL=$(terraform output -raw cloudfront_url)
           echo "Updating NEXTAUTH_URL to $CF_URL"
-          gh variable set NEXTAUTH_URL --body "$CF_URL" --env ${{ inputs.environment }}
+          gh variable set NEXTAUTH_URL --body "$CF_URL" --env ${{ inputs.environment }} || echo "Failed to update GitHub variable, continuing..."
 
           # Update Lambda environment variable
-          FUNCTION_NAME=$(terraform output -raw lambda_function_name 2>/dev/null || echo "gis-docusign-${{ inputs.environment }}")
+          FUNCTION_NAME="gis-docusign-${{ inputs.environment }}"
           aws lambda update-function-configuration \
             --function-name "$FUNCTION_NAME" \
             --environment "Variables={DATABASE_URL=${{ secrets.DATABASE_URL }},DIRECT_DATABASE_URL=${{ secrets.DIRECT_DATABASE_URL }},NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }},NEXTAUTH_URL=$CF_URL,KEYCLOAK_ID=${{ secrets.KEYCLOAK_ID }},KEYCLOAK_SECRET=${{ secrets.KEYCLOAK_SECRET }},KEYCLOAK_ISSUER=${{ secrets.KEYCLOAK_ISSUER }},DOCUSEAL_API_KEY=${{ secrets.DOCUSEAL_API_KEY }},DOCUSEAL_URL=${{ secrets.DOCUSEAL_URL }},PORT=3000,RUST_LOG=info,AWS_LWA_INVOKE_MODE=buffered}"
