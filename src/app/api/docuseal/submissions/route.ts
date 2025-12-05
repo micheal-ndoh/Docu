@@ -202,11 +202,9 @@ export async function syncSubmissionStatus(submissionId: number, status: string)
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
-  // Accept API key either from server env or from an incoming header.
   const incomingApiKey = request.headers.get('x-auth-token') || request.headers.get('X-Auth-Token');
   const apiKey = process.env.DOCUSEAL_API_KEY ?? incomingApiKey ?? '';
 
-  // Require authentication for creating submissions
   if (!session) {
     return NextResponse.json({ message: "Unauthorized - please sign in to create submissions" }, { status: 401 });
   }
@@ -219,7 +217,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "User email or ID not found in session" }, { status: 400 });
   }
 
-  // Get admin configuration from environment
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminName = process.env.ADMIN_NAME || "Administrator";
 
@@ -234,221 +231,136 @@ export async function POST(request: Request) {
   try {
     const contentType = request.headers.get('content-type') || '';
 
-    // If multipart/form-data (file uploads), forward the raw request body and content-type header
     if (contentType.startsWith('multipart/form-data')) {
       const rawBody = await request.arrayBuffer();
       const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}`, {
         method: 'POST',
-        headers: {
-          'X-Auth-Token': apiKey,
-          'Content-Type': contentType,
-        },
+        headers: { 'X-Auth-Token': apiKey, 'Content-Type': contentType },
         body: Buffer.from(rawBody),
       });
 
       if (!docusealResponse.ok) {
         const errorData = await docusealResponse.json();
-        return NextResponse.json(errorData, {
-          status: docusealResponse.status,
-        });
+        return NextResponse.json(errorData, { status: docusealResponse.status });
       }
 
       const data = await docusealResponse.json();
       return NextResponse.json(data, { status: 201 });
     }
 
-    // Otherwise expect JSON
     const body = (await request.json()) as Partial<DocuSeal.CreateSubmissionRequest> & {
       additional_parties?: Array<{ email: string; name?: string; role?: string }>;
     };
 
-    console.log('Received submission request:', JSON.stringify(body, null, 2));
-
     if (!body.template_id) {
-      console.error('Missing template_id in request body');
+      return NextResponse.json({ message: "template_id is required" }, { status: 400 });
+    }
+
+    const templateResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'templates' : 'api/templates'}/${body.template_id}`, {
+      headers: { "X-Auth-Token": apiKey, "Content-Type": "application/json" },
+    });
+
+    if (!templateResponse.ok) {
+      return NextResponse.json({ message: "Failed to fetch template details" }, { status: 500 });
+    }
+
+    const template = await templateResponse.json();
+    const templateSubmitters = template.submitters || [];
+
+    const submitters: any[] = [];
+
+    if (templateSubmitters.length > 0) {
+      submitters.push({
+        email: userEmail,
+        name: userName || "",
+        role: templateSubmitters[0].name,
+        send_email: true,
+      });
+    }
+
+    const additionalParties = body.additional_parties || [];
+    const expectedAdditionalParties = Math.max(0, templateSubmitters.length - 2);
+
+    if (additionalParties.length !== expectedAdditionalParties) {
       return NextResponse.json(
-        { message: "template_id is required", received: body },
+        { message: `Template requires ${templateSubmitters.length} parties. Please provide ${expectedAdditionalParties} additional parties.` },
         { status: 400 }
       );
     }
 
-    // Fetch template to determine number of parties required
-    const templateResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${DOCUSEAL_API_BASE_URL.includes('api.docuseal.com') ? 'templates' : 'api/templates'}/${body.template_id}`, {
-      headers: {
-        "X-Auth-Token": apiKey,
-        "Content-Type": "application/json",
-      },
+    additionalParties.forEach((party, index) => {
+      submitters.push({
+        email: party.email,
+        name: party.name || "",
+        role: templateSubmitters[index + 1]?.name || `Party ${index + 2}`,
+        send_email: true,
+      });
     });
 
-    if (!templateResponse.ok) {
+    if (templateSubmitters.length > 1) {
+      submitters.push({
+        email: adminEmail,
+        name: adminName,
+        role: templateSubmitters[templateSubmitters.length - 1].name,
+        send_email: true,
+      });
+    }
+
+    if (submitters.length !== templateSubmitters.length) {
       return NextResponse.json(
-        { message: "Failed to fetch template details" },
+        { message: "Mismatch between constructed parties and template requirements." },
         { status: 500 }
       );
     }
 
-    const template = await templateResponse.json();
-    const requiredParties = template.submitters?.length || 2;
-
-    console.log(`Template requires ${requiredParties} parties`);
-
-    // Build submitters array with smart auto-fill
-    // Party 1: Student (logged-in user, signs first)
-    // Party 2+: Additional parties (if any)
-    // Last Party: Admin (signs last for approval)
-
-    const submitters: any[] = [];
-
-    // Party 1: Student (current user) - signs first
-    submitters.push({
-      email: userEmail,
-      name: userName || "",
-      role: template.submitters?.[0]?.name || "Student",
-      send_email: true, // Explicitly send email to first party
-    });
-
-    // Party 2+: Additional parties (if template requires more than 2)
-    if (requiredParties > 2) {
-      const additionalParties = body.additional_parties || [];
-
-      if (additionalParties.length !== requiredParties - 2) {
-        return NextResponse.json(
-          {
-            message: `Template requires ${requiredParties} parties. Please provide ${requiredParties - 2} additional ${requiredParties - 2 === 1 ? 'party' : 'parties'}`,
-            required_additional_parties: requiredParties - 2,
-            provided: additionalParties.length
-          },
-          { status: 400 }
-        );
-      }
-
-      // Add additional parties
-      additionalParties.forEach((party, index) => {
-        if (!party.email) {
-          throw new Error(`Additional party ${index + 1} must have an email`);
-        }
-        submitters.push({
-          email: party.email,
-          name: party.name || "",
-          role: template.submitters?.[index + 1]?.name || `Party ${index + 2}`,
-          send_email: true, // Ensure email is sent when their turn comes
-          send_sms: false,
-        });
-      });
-    }
-
-    // Last Party: Admin - signs last for approval
-    submitters.push({
-      email: adminEmail,
-      name: adminName,
-      role: template.submitters?.[requiredParties - 1]?.name || "Administrator",
-      send_email: true, // Ensure email is sent when their turn comes
-      send_sms: false,
-    });
-
-    // Add metadata to all submitters
     submitters.forEach((submitter) => {
       submitter.external_id = userId;
-      submitter.metadata = {
-        created_by_user_id: userId,
-        created_by_email: userEmail,
-      };
+      submitter.metadata = { created_by_user_id: userId, created_by_email: userEmail };
     });
 
     const submissionPayload = {
       template_id: body.template_id,
       submitters: submitters,
-      send_email: body.send_email !== false, // Default to true
-      // Order defaults to 'preserved' for sequential signing
+      send_email: body.send_email !== false,
     };
-
-    console.log('Sending to DocuSeal API:', JSON.stringify(submissionPayload, null, 2));
 
     const docusealResponse = await fetch(`${DOCUSEAL_API_BASE_URL}/${getSubmissionsApiPath()}`, {
       method: 'POST',
-      headers: {
-        'X-Auth-Token': apiKey,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'X-Auth-Token': apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify(submissionPayload),
     });
 
     if (!docusealResponse.ok) {
       const errorData = await docusealResponse.json();
-      console.error('DocuSeal API error:', docusealResponse.status, errorData);
-      return NextResponse.json(errorData, {
-        status: docusealResponse.status,
-      });
+      return NextResponse.json(errorData, { status: docusealResponse.status });
     }
 
     const data = await docusealResponse.json();
-    console.log('DocuSeal API success:', data);
 
-    // Diagnostic logging for email delivery
-    console.log('\n=== EMAIL DELIVERY DIAGNOSTICS ===');
-    const submitterResponses = Array.isArray(data) ? data : [data];
-    submitterResponses.forEach((submitter: any, index: number) => {
-      console.log(`\nSubmitter ${index + 1}:`);
-      console.log(`  Email: ${submitter.email}`);
-      console.log(`  Status: ${submitter.status}`);
-      console.log(`  Sent At: ${submitter.sent_at || 'Not sent'}`);
-      console.log(`  Preferences:`, submitter.preferences);
-      console.log(`  Embed Link: ${submitter.embed_src}`);
-
-      if (submitter.status === 'awaiting') {
-        console.log(`  ⚠️  Email will be sent when previous party signs (sequential mode)`);
-      } else if (submitter.status === 'sent' && !submitter.opened_at) {
-        console.log(`  ⚠️  Email sent but not opened yet - Check spam folder or email bounces`);
-      }
-    });
-    console.log('==================================\n');
-
-    // Save submission and per-party status to database
     try {
-      console.log('Attempting to save to database. Data structure:', JSON.stringify(submitterResponses, null, 2));
-
-      if (submitterResponses.length > 0 && submitterResponses[0].submission_id) {
-        const submissionId = submitterResponses[0].submission_id;
-
-        console.log(`Saving submission ${submissionId} with ${submitterResponses.length} parties`);
-
-        // Create submission record with per-party status
-        const savedSubmission = await prisma.submission.create({
+      if (data.length > 0 && data[0].submission_id) {
+        const submissionId = data[0].submission_id;
+        await prisma.submission.create({
           data: {
             userId: userId,
             docusealId: submissionId,
             status: 'pending',
             submitterEmail: userEmail,
             submitterStatus: {
-              create: submitterResponses.map((submitterResp: any) => ({
-                docusealSubmitterId: submitterResp.id,
-                email: submitterResp.email,
-                name: submitterResp.name || null,
-                role: submitterResp.role || 'Unknown',
-                status: submitterResp.status || 'pending',
-                embedSrc: submitterResp.embed_src || null, // Save direct signing link
-                sentAt: submitterResp.sent_at ? new Date(submitterResp.sent_at) : null,
-                openedAt: submitterResp.opened_at ? new Date(submitterResp.opened_at) : null,
-                completedAt: submitterResp.completed_at ? new Date(submitterResp.completed_at) : null,
-                declinedAt: submitterResp.declined_at ? new Date(submitterResp.declined_at) : null,
+              create: data.map((s: any) => ({
+                docusealSubmitterId: s.id,
+                email: s.email,
+                name: s.name || null,
+                role: s.role || 'Unknown',
+                status: s.status || 'pending',
+                embedSrc: s.embed_src || null,
               })),
             },
           },
-          include: {
-            submitterStatus: true,
-          },
         });
-
-        console.log(`✅ Successfully saved submission ${submissionId} with per-party tracking:`, savedSubmission);
-      } else {
-        console.error('❌ No submission_id found in response data:', submitterResponses);
       }
     } catch (dbError) {
-      console.error('❌ Error saving submission to database:');
-      console.error('Error details:', dbError);
-      console.error('Error name:', (dbError as Error).name);
-      console.error('Error message:', (dbError as Error).message);
-      // Don't fail the request if database save fails
+      console.error('Error saving submission to database:', dbError);
     }
 
     return NextResponse.json(data, { status: 201 });

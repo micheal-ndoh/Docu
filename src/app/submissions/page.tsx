@@ -614,7 +614,7 @@ export default function SubmissionsPage() {
                       className="space-y-2 rounded-md border p-4 bg-white"
                     >
                       <h4 className="font-medium">
-                        {selectedTemplateDetails?.submitters?.[index + 2]?.name || `Party ${index + 3}`} Details
+                        {selectedTemplateDetails?.submitters?.[index + 1]?.name || `Party ${index + 2}`} Details
                       </h4>
                       <div>
                         <Label htmlFor={`submitters.${index}.email`}>
@@ -766,7 +766,7 @@ export default function SubmissionsPage() {
                       className="space-y-2 rounded-md border p-4 bg-white"
                     >
                       <h4 className="font-medium">
-                        {selectedTemplateDetails?.submitters?.[index + 2]?.name || `Party ${index + 3}`} Details
+                        {selectedTemplateDetails?.submitters?.[index + 1]?.name || `Party ${index + 2}`} Details
                       </h4>
                       <div>
                         <Label htmlFor={`submitters.${index}.email`}>
@@ -930,7 +930,12 @@ export default function SubmissionsPage() {
                               submission.submitter_status.map((status, index) => (
                                 <div key={status.id} className="flex items-start gap-4 text-sm py-1">
                                   <div className="flex items-center gap-3 flex-1">
-                                    <span className="text-gray-700 font-medium truncate max-w-[200px]" title={status.email}>{status.email}</span>
+                                    {/* Conditionally render email unless it's the last party (admin) */}
+                                    {index !== submission.submitter_status.length - 1 ? (
+                                      <span className="text-gray-700 font-medium truncate max-w-[200px]" title={status.email}>{status.email}</span>
+                                    ) : (
+                                      <span className="text-gray-700 font-medium">{status.role || 'Administrator'}</span>
+                                    )}
                                     <Badge
                                       variant="outline"
                                       className={`text-xs ${getStatusBadgeVariant(status.status)}`}
