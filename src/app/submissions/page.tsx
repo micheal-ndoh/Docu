@@ -947,8 +947,7 @@ export default function SubmissionsPage() {
                                     {/* Action Buttons */}
                                     {status.embedSrc && status.status !== 'completed' && (
                                       <>
-                                        {/* First Party (Student) - Show Sign Now */}
-                                        {index === 0 ? (
+                                        {session?.user?.email === status.email ? (
                                           <Button
                                             variant="default"
                                             size="sm"
@@ -959,7 +958,6 @@ export default function SubmissionsPage() {
                                             Sign Now
                                           </Button>
                                         ) : (
-                                          /* Other Parties - Show Copy Link */
                                           <Button
                                             variant="outline"
                                             size="sm"
