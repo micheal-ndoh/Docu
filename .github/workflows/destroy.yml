@@ -1,0 +1,81 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment name"
+        required: true
+        type: choice
+        options:
+          - production
+          - dev
+          - staging
+
+defaults:
+  run:
+    working-directory: ./terraform
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    name: Destroy ${{ inputs.environment }} Environment
+    environment:
+      name: ${{ inputs.environment }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Set Environment Variables
+        run: |
+          echo "TF_VAR_project_name=gis-docusign-${{ inputs.environment }}" >> $GITHUB_ENV
+          echo "TF_VAR_aws_region=eu-central-1" >> $GITHUB_ENV
+
+      - name: Set Sensitive Variables
+        run: |
+          echo "TF_VAR_database_url=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_direct_database_url=${{ secrets.DIRECT_DATABASE_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_nextauth_secret=${{ secrets.NEXTAUTH_SECRET }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_id=${{ secrets.KEYCLOAK_ID }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_secret=${{ secrets.KEYCLOAK_SECRET }}" >> $GITHUB_ENV
+          echo "TF_VAR_keycloak_issuer=${{ secrets.KEYCLOAK_ISSUER }}" >> $GITHUB_ENV
+          echo "TF_VAR_docuseal_api_key=${{ secrets.DOCUSEAL_API_KEY }}" >> $GITHUB_ENV
+          echo "TF_VAR_docuseal_url=${{ secrets.DOCUSEAL_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_nextauth_url=${{ vars.NEXTAUTH_URL }}" >> $GITHUB_ENV
+          echo "TF_VAR_admin_name=${{ secrets.ADMIN_NAME }}" >> $GITHUB_ENV
+          echo "TF_VAR_admin_email=${{ secrets.ADMIN_EMAIL }}" >> $GITHUB_ENV
+
+      - name: Create Backend Configuration
+        run: |
+          cat <<EOF > backend.tf
+          terraform {
+            backend "s3" {
+              bucket         = "gis-docusign-${{ inputs.environment }}-terraform-state"
+              key            = "terraform.tfstate"
+              region         = "eu-central-1"
+              encrypt        = true
+            }
+          }
+          EOF
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan Destroy
+        run: terraform plan -destroy -out=destroy.tfplan
+
+      - name: Terraform Destroy
+        if: github.event_name == 'workflow_dispatch'
+        run: terraform destroy -auto-approve

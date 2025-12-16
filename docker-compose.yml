@@ -1,0 +1,166 @@
+services:
+  nextjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: docu-nextjs-app
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-nextjs:5432/nextjs_db
+      - DIRECT_DATABASE_URL=postgresql://postgres:postgres@postgres-nextjs:5432/nextjs_db
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    depends_on:
+      postgres-nextjs:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: sh -c "rm -rf .next && npx prisma migrate dev && npm run dev"
+
+  postgres-nextjs:
+    image: postgres:15
+    container_name: docu-postgres-nextjs
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nextjs_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak Database
+  postgres-keycloak:
+    image: postgres:15
+    container_name: docu-postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak Server
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: docu-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_STRICT: false
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_URL: http://localhost:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: start-dev
+
+  # Keycloak Realm Import (runs after Keycloak starts)
+  keycloak-init:
+    image: alpine:3.18
+    container_name: docu-keycloak-init
+    depends_on:
+      - keycloak
+    networks:
+      - app-network
+    volumes:
+      - ./scripts/import-realm.sh:/import-realm.sh:ro
+      - ./realms/docuseal-realm.json:/docuseal-realm.json:ro
+    environment:
+      - KEYCLOAK_HOST=keycloak:8080
+    entrypoint: /bin/sh
+    command: -c "apk add --no-cache curl jq && sh /import-realm.sh /docuseal-realm.json"
+
+  # DocuSeal PostgreSQL Database
+  postgres-docuseal:
+    image: postgres:15
+    container_name: docu-postgres-docuseal
+    environment:
+      POSTGRES_DB: docuseal
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - docuseal_db_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # DocuSeal Self-hosted
+  docuseal:
+    image: docuseal/docuseal:latest
+    container_name: docu-docuseal
+    ports:
+      - "8081:3000"
+    volumes:
+      - ./docuseal:/data/docuseal
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-docuseal:5432/docuseal
+      FORCE_SSL: "false"
+      HOST: "http://localhost:8081"
+      SMTP_ADDRESS: "mailhog"
+      SMTP_PORT: "1025"
+      SMTP_USERNAME: "test"
+      SMTP_PASSWORD: "test"
+      SMTP_FROM: "admin@docuseal.com"
+    depends_on:
+      postgres-docuseal:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: docu-mailhog
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    networks:
+      - app-network
+    depends_on:
+      - docuseal
+
+volumes:
+  postgres_data:
+  keycloak_db_data:
+  docuseal_db_data:
+
+networks:
+  app-network:
+    driver: bridge

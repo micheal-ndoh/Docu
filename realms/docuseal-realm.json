@@ -1,0 +1,60 @@
+{
+  "id": "docuseal-realm",
+  "realm": "docuseal",
+  "displayName": "GIS Docusign",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "eventsEnabled": false,
+  "clients": [
+    {
+      "clientId": "docuseal-next",
+      "name": "GIS Docusign Next.js App",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "clientAuthenticatorType": "client-secret",
+      "secret": "your client secret",
+      "redirectUris": [
+        "http://localhost:3000/api/auth/callback/keycloak",
+        "http://localhost:3000/*",
+        "http://localhost:3000"
+      ],
+      "webOrigins": ["http://localhost:3000"],
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      }
+    }
+  ],
+  "roles": {
+    "realm": [{ "name": "user" }, { "name": "admin" }]
+  },
+  "users": [
+    {
+      "username": "test@docuseal.local",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "test@docuseal.local",
+      "firstName": "Test",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Test1234!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    }
+  ],
+  "groups": [],
+  "components": {}
+}
