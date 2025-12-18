@@ -134,14 +134,12 @@ resource "aws_lambda_function_url" "web" {
   }
 }
 
+
 resource "aws_cloudfront_invalidation" "invalidation" {
   distribution_id = aws_cloudfront_distribution.s3_distribution.id
-  paths             = ["/*"]
+  paths           = ["/*"]
 
-  triggers = {
-    redeployment = timestamp()
-  }
-
+  # This lifecycle block ensures that a new invalidation is created on every deployment.
   lifecycle {
     create_before_destroy = true
   }
@@ -193,6 +191,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   viewer_certificate {
     cloudfront_default_certificate = true
   }
+
 
   tags = {
     Name = "${var.project_name}-cloudfront-distribution"
