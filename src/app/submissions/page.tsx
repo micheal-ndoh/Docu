@@ -133,7 +133,8 @@ export default function SubmissionsPage() {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/docuseal/submissions?status=${filterStatus === "ALL" ? "" : filterStatus
+        `/api/docuseal/submissions?status=${
+          filterStatus === "ALL" ? "" : filterStatus
         }`
       );
       if (!response.ok) {
@@ -181,7 +182,8 @@ export default function SubmissionsPage() {
     fetchTemplatesForForm();
   }, [fetchSubmissions, fetchTemplatesForForm]);
 
-  const [selectedTemplateDetails, setSelectedTemplateDetails] = useState<any>(null);
+  const [selectedTemplateDetails, setSelectedTemplateDetails] =
+    useState<any>(null);
   const [fetchingTemplate, setFetchingTemplate] = useState(false);
 
   // Reset form when dialog closes
@@ -218,7 +220,7 @@ export default function SubmissionsPage() {
         const response = await fetch(`/api/docuseal/templates/${templateId}`);
         if (response.ok) {
           const data = await response.json();
-          console.log('Template details:', data);
+          console.log("Template details:", data);
           setSelectedTemplateDetails(data);
 
           // Reset submitters array based on required parties
@@ -231,14 +233,19 @@ export default function SubmissionsPage() {
             const extraPartiesCount = requiredParties - 2;
             console.log(`Need ${extraPartiesCount} additional party inputs`);
             // Clear and add needed slots
-            setValue("submitters", Array(extraPartiesCount).fill({ email: "", name: "", role: "" }));
+            setValue(
+              "submitters",
+              Array(extraPartiesCount).fill({ email: "", name: "", role: "" })
+            );
           } else {
             // No extra parties needed - clear the array
-            console.log('No additional parties needed, clearing submitters array');
+            console.log(
+              "No additional parties needed, clearing submitters array"
+            );
             setValue("submitters", []);
           }
         } else {
-          console.error('Failed to fetch template:', response.status);
+          console.error("Failed to fetch template:", response.status);
           toast.error("Failed to load template details");
         }
       } catch (error) {
@@ -279,7 +286,9 @@ export default function SubmissionsPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error("API error:", errorData);
-        throw new Error(errorData.message || errorData.error || "Failed to create submission");
+        throw new Error(
+          errorData.message || errorData.error || "Failed to create submission"
+        );
       }
 
       const responseData = await response.json();
@@ -299,11 +308,11 @@ export default function SubmissionsPage() {
       setTimeout(async () => {
         await fetchSubmissions();
       }, 1000);
-
     } catch (error: unknown) {
       console.error("Submission error:", error);
       toast.error("Error creating submission", {
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     } finally {
       setCreating(false);
@@ -429,10 +438,10 @@ export default function SubmissionsPage() {
                         <AvatarFallback className="bg-purple-100 text-purple-700 font-semibold">
                           {session.user?.name
                             ? session.user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()
                             : "U"}
                         </AvatarFallback>
                       </Avatar>
@@ -546,7 +555,7 @@ export default function SubmissionsPage() {
                     <Label htmlFor="template_id">Template</Label>
                     <Select
                       onValueChange={(value) => {
-                        console.log('Template selected:', value);
+                        console.log("Template selected:", value);
                         setValue("template_id", Number(value));
                       }}
                     >
@@ -581,68 +590,108 @@ export default function SubmissionsPage() {
                   {/* Template Party Info */}
                   {selectedTemplateDetails && !fetchingTemplate && (
                     <div className="rounded-md bg-purple-50 p-4 border border-purple-100">
-                      <h4 className="font-medium text-purple-900 mb-2">Submission Parties (Sequential Signing)</h4>
+                      <h4 className="font-medium text-purple-900 mb-2">
+                        Submission Parties (Sequential Signing)
+                      </h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center text-gray-700">
                           <span className="font-semibold w-24">Party 1:</span>
-                          <span>{selectedTemplateDetails.submitters?.[0]?.name || "Student"} (You) - Signs First</span>
-                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                          <span>
+                            {selectedTemplateDetails.submitters?.[0]?.name ||
+                              "Student"}{" "}
+                            (You) - Signs First
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="ml-2 bg-green-50 text-green-700 border-green-200"
+                          >
+                            Auto-filled
+                          </Badge>
                         </div>
 
                         {/* List additional required parties */}
-                        {selectedTemplateDetails.submitters?.slice(1, -1).map((submitter: any, idx: number) => (
-                          <div key={idx} className="flex items-center text-gray-700">
-                            <span className="font-semibold w-24">Party {idx + 2}:</span>
-                            <span>{submitter.name || "Additional Party"}</span>
-                            <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Requires Input</Badge>
-                          </div>
-                        ))}
+                        {selectedTemplateDetails.submitters
+                          ?.slice(1, -1)
+                          .map((submitter: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex items-center text-gray-700"
+                            >
+                              <span className="font-semibold w-24">
+                                Party {idx + 2}:
+                              </span>
+                              <span>
+                                {submitter.name || "Additional Party"}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="ml-2 bg-blue-50 text-blue-700 border-blue-200"
+                              >
+                                Requires Input
+                              </Badge>
+                            </div>
+                          ))}
 
                         <div className="flex items-center text-gray-700">
-                          <span className="font-semibold w-24">Last Party:</span>
-                          <span>{selectedTemplateDetails.submitters?.[selectedTemplateDetails.submitters.length - 1]?.name || "Admin"} (School Administrator) - Signs Last</span>
-                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                          <span className="font-semibold w-24">
+                            Last Party:
+                          </span>
+                          <span>
+                            {selectedTemplateDetails.submitters?.[
+                              selectedTemplateDetails.submitters.length - 1
+                            ]?.name || "Admin"}{" "}
+                            (School Administrator) - Signs Last
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="ml-2 bg-green-50 text-green-700 border-green-200"
+                          >
+                            Auto-filled
+                          </Badge>
                         </div>
                       </div>
                     </div>
                   )}
 
                   {/* Dynamic Fields for Party 3+ - Only show if template requires more than 2 parties */}
-                  {fields.length > 0 && fields.map((field, index) => (
-                    <div
-                      key={field.id}
-                      className="space-y-2 rounded-md border p-4 bg-white"
-                    >
-                      <h4 className="font-medium">
-                        {selectedTemplateDetails?.submitters?.[index + 1]?.name || `Party ${index + 2}`} Details
-                      </h4>
-                      <div>
-                        <Label htmlFor={`submitters.${index}.email`}>
-                          Email
-                        </Label>
-                        <Input
-                          id={`submitters.${index}.email`}
-                          type="email"
-                          placeholder="recipient@example.com"
-                          {...register(`submitters.${index}.email`, {
-                            required: true,
-                          })}
-                          disabled={creating}
-                        />
+                  {fields.length > 0 &&
+                    fields.map((field, index) => (
+                      <div
+                        key={field.id}
+                        className="space-y-2 rounded-md border p-4 bg-white"
+                      >
+                        <h4 className="font-medium">
+                          {selectedTemplateDetails?.submitters?.[index + 1]
+                            ?.name || `Party ${index + 2}`}{" "}
+                          Details
+                        </h4>
+                        <div>
+                          <Label htmlFor={`submitters.${index}.email`}>
+                            Email
+                          </Label>
+                          <Input
+                            id={`submitters.${index}.email`}
+                            type="email"
+                            placeholder="recipient@example.com"
+                            {...register(`submitters.${index}.email`, {
+                              required: true,
+                            })}
+                            disabled={creating}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`submitters.${index}.name`}>
+                            Name (Optional)
+                          </Label>
+                          <Input
+                            id={`submitters.${index}.name`}
+                            placeholder="John Doe"
+                            {...register(`submitters.${index}.name`)}
+                            disabled={creating}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor={`submitters.${index}.name`}>
-                          Name (Optional)
-                        </Label>
-                        <Input
-                          id={`submitters.${index}.name`}
-                          placeholder="John Doe"
-                          {...register(`submitters.${index}.name`)}
-                          disabled={creating}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
 
                   <div className="flex gap-2">
                     <Button
@@ -672,7 +721,10 @@ export default function SubmissionsPage() {
 
           {/* Floating Action Button for Create Submission on Mobile */}
           <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:hidden z-40">
-            <Dialog open={isMobileDialogOpen} onOpenChange={handleMobileDialogClose}>
+            <Dialog
+              open={isMobileDialogOpen}
+              onOpenChange={handleMobileDialogClose}
+            >
               <DialogTrigger asChild>
                 <Button
                   className="h-14 w-14 rounded-full bg-[#3b0764] hover:bg-[#1e0836] text-white shadow-lg transition-transform active:scale-95"
@@ -698,7 +750,7 @@ export default function SubmissionsPage() {
                     <Label htmlFor="template_id">Template</Label>
                     <Select
                       onValueChange={(value) => {
-                        console.log('Template selected (mobile):', value);
+                        console.log("Template selected (mobile):", value);
                         setValue("template_id", Number(value));
                       }}
                     >
@@ -733,68 +785,108 @@ export default function SubmissionsPage() {
                   {/* Template Party Info */}
                   {selectedTemplateDetails && !fetchingTemplate && (
                     <div className="rounded-md bg-purple-50 p-4 border border-purple-100">
-                      <h4 className="font-medium text-purple-900 mb-2">Submission Parties (Sequential Signing)</h4>
+                      <h4 className="font-medium text-purple-900 mb-2">
+                        Submission Parties (Sequential Signing)
+                      </h4>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center text-gray-700">
                           <span className="font-semibold w-24">Party 1:</span>
-                          <span>{selectedTemplateDetails.submitters?.[0]?.name || "Student"} (You) - Signs First</span>
-                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                          <span>
+                            {selectedTemplateDetails.submitters?.[0]?.name ||
+                              "Student"}{" "}
+                            (You) - Signs First
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="ml-2 bg-green-50 text-green-700 border-green-200"
+                          >
+                            Auto-filled
+                          </Badge>
                         </div>
 
                         {/* List additional required parties */}
-                        {selectedTemplateDetails.submitters?.slice(1, -1).map((submitter: any, idx: number) => (
-                          <div key={idx} className="flex items-center text-gray-700">
-                            <span className="font-semibold w-24">Party {idx + 2}:</span>
-                            <span>{submitter.name || "Additional Party"}</span>
-                            <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">Requires Input</Badge>
-                          </div>
-                        ))}
+                        {selectedTemplateDetails.submitters
+                          ?.slice(1, -1)
+                          .map((submitter: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex items-center text-gray-700"
+                            >
+                              <span className="font-semibold w-24">
+                                Party {idx + 2}:
+                              </span>
+                              <span>
+                                {submitter.name || "Additional Party"}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="ml-2 bg-blue-50 text-blue-700 border-blue-200"
+                              >
+                                Requires Input
+                              </Badge>
+                            </div>
+                          ))}
 
                         <div className="flex items-center text-gray-700">
-                          <span className="font-semibold w-24">Last Party:</span>
-                          <span>{selectedTemplateDetails.submitters?.[selectedTemplateDetails.submitters.length - 1]?.name || "Admin"} (School Administrator) - Signs Last</span>
-                          <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">Auto-filled</Badge>
+                          <span className="font-semibold w-24">
+                            Last Party:
+                          </span>
+                          <span>
+                            {selectedTemplateDetails.submitters?.[
+                              selectedTemplateDetails.submitters.length - 1
+                            ]?.name || "Admin"}{" "}
+                            (School Administrator) - Signs Last
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="ml-2 bg-green-50 text-green-700 border-green-200"
+                          >
+                            Auto-filled
+                          </Badge>
                         </div>
                       </div>
                     </div>
                   )}
 
                   {/* Dynamic Fields for Party 3+ - Only show if template requires more than 2 parties */}
-                  {fields.length > 0 && fields.map((field, index) => (
-                    <div
-                      key={field.id}
-                      className="space-y-2 rounded-md border p-4 bg-white"
-                    >
-                      <h4 className="font-medium">
-                        {selectedTemplateDetails?.submitters?.[index + 1]?.name || `Party ${index + 2}`} Details
-                      </h4>
-                      <div>
-                        <Label htmlFor={`submitters.${index}.email`}>
-                          Email
-                        </Label>
-                        <Input
-                          id={`submitters.${index}.email`}
-                          type="email"
-                          placeholder="recipient@example.com"
-                          {...register(`submitters.${index}.email`, {
-                            required: true,
-                          })}
-                          disabled={creating}
-                        />
+                  {fields.length > 0 &&
+                    fields.map((field, index) => (
+                      <div
+                        key={field.id}
+                        className="space-y-2 rounded-md border p-4 bg-white"
+                      >
+                        <h4 className="font-medium">
+                          {selectedTemplateDetails?.submitters?.[index + 1]
+                            ?.name || `Party ${index + 2}`}{" "}
+                          Details
+                        </h4>
+                        <div>
+                          <Label htmlFor={`submitters.${index}.email`}>
+                            Email
+                          </Label>
+                          <Input
+                            id={`submitters.${index}.email`}
+                            type="email"
+                            placeholder="recipient@example.com"
+                            {...register(`submitters.${index}.email`, {
+                              required: true,
+                            })}
+                            disabled={creating}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`submitters.${index}.name`}>
+                            Name (Optional)
+                          </Label>
+                          <Input
+                            id={`submitters.${index}.name`}
+                            placeholder="John Doe"
+                            {...register(`submitters.${index}.name`)}
+                            disabled={creating}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor={`submitters.${index}.name`}>
-                          Name (Optional)
-                        </Label>
-                        <Input
-                          id={`submitters.${index}.name`}
-                          placeholder="John Doe"
-                          {...register(`submitters.${index}.name`)}
-                          disabled={creating}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
 
                   <div className="flex gap-2">
                     <Button
@@ -926,65 +1018,118 @@ export default function SubmissionsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            {submission.submitter_status && submission.submitter_status.length > 0 ? (
-                              submission.submitter_status.map((status, index) => (
-                                <div key={status.id} className="flex items-start gap-4 text-sm py-1">
-                                  <div className="flex items-center gap-3 flex-1">
-                                    {/* Conditionally render email unless it's the last party (admin) */}
-                                    {index !== submission.submitter_status.length - 1 ? (
-                                      <span className="text-gray-700 font-medium truncate max-w-[200px]" title={status.email}>{status.email}</span>
-                                    ) : (
-                                      <span className="text-gray-700 font-medium">{status.role || 'Administrator'}</span>
-                                    )}
-                                    <Badge
-                                      variant="outline"
-                                      className={`text-xs ${getStatusBadgeVariant(status.status)}`}
+                            {submission.submitter_status &&
+                            submission.submitter_status.length > 0 ? (
+                              (() => {
+                                // Find the current signer: the first submitter with embedSrc and not completed
+                                const currentSignerIndex =
+                                  submission.submitter_status.findIndex(
+                                    (status) =>
+                                      status.embedSrc &&
+                                      status.status !== "completed"
+                                  );
+                                const currentSigner =
+                                  currentSignerIndex !== -1
+                                    ? submission.submitter_status[
+                                        currentSignerIndex
+                                      ]
+                                    : null;
+
+                                return submission.submitter_status.map(
+                                  (status, index) => (
+                                    <div
+                                      key={status.id}
+                                      className="flex items-start gap-4 text-sm py-1"
                                     >
-                                      {status.status.toUpperCase()}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center">
-                                    {/* Action Buttons */}
-                                    {status.embedSrc && status.status !== 'completed' && (
-                                      <>
-                                        {session?.user?.email === status.email ? (
-                                          <Button
-                                            variant="default"
-                                            size="sm"
-                                            className="h-6 w-28 text-xs px-2 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-sm"
-                                            onClick={() => window.open(status.embedSrc!, '_blank')}
+                                      <div className="flex items-center gap-3 flex-1">
+                                        {/* Conditionally render email unless it's the last party (admin) */}
+                                        {index !==
+                                        submission.submitter_status.length -
+                                          1 ? (
+                                          <span
+                                            className="text-gray-700 font-medium truncate max-w-[200px]"
+                                            title={status.email}
                                           >
-                                            <FileEdit className="h-3 w-3 mr-1" />
-                                            Sign Now
-                                          </Button>
+                                            {status.email}
+                                          </span>
                                         ) : (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-6 w-28 text-xs px-2 rounded-full border-gray-300 hover:bg-gray-100"
-                                            onClick={() => copyToClipboard(status.embedSrc!, status.id)}
-                                          >
-                                            {copiedId === status.id ? (
-                                              <>
-                                                <Check className="h-3 w-3 mr-1 text-green-600" />
-                                                <span className="text-green-600">Copied</span>
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Copy className="h-3 w-3 mr-1 text-gray-600" />
-                                                <span className="text-gray-600">Copy Link</span>
-                                              </>
-                                            )}
-                                          </Button>
+                                          <span className="text-gray-700 font-medium">
+                                            {status.role || "Administrator"}
+                                          </span>
                                         )}
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              ))
+                                        <Badge
+                                          variant="outline"
+                                          className={`text-xs ${getStatusBadgeVariant(
+                                            status.status
+                                          )}`}
+                                        >
+                                          {status.status.toUpperCase()}
+                                        </Badge>
+                                      </div>
+                                      <div className="flex items-center">
+                                        {/* Action Buttons */}
+                                        {status.embedSrc &&
+                                          status.status !== "completed" && (
+                                            <>
+                                              {currentSigner &&
+                                              session?.user?.email ===
+                                                currentSigner.email &&
+                                              status.id === currentSigner.id ? (
+                                                <Button
+                                                  variant="default"
+                                                  size="sm"
+                                                  className="h-6 w-28 text-xs px-2 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-sm"
+                                                  onClick={() =>
+                                                    window.open(
+                                                      status.embedSrc!,
+                                                      "_blank"
+                                                    )
+                                                  }
+                                                >
+                                                  <FileEdit className="h-3 w-3 mr-1" />
+                                                  Sign Now
+                                                </Button>
+                                              ) : (
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  className="h-6 w-28 text-xs px-2 rounded-full border-gray-300 hover:bg-gray-100"
+                                                  onClick={() =>
+                                                    copyToClipboard(
+                                                      status.embedSrc!,
+                                                      status.id
+                                                    )
+                                                  }
+                                                >
+                                                  {copiedId === status.id ? (
+                                                    <>
+                                                      <Check className="h-3 w-3 mr-1 text-green-600" />
+                                                      <span className="text-green-600">
+                                                        Copied
+                                                      </span>
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <Copy className="h-3 w-3 mr-1 text-gray-600" />
+                                                      <span className="text-gray-600">
+                                                        Copy Link
+                                                      </span>
+                                                    </>
+                                                  )}
+                                                </Button>
+                                              )}
+                                            </>
+                                          )}
+                                      </div>
+                                    </div>
+                                  )
+                                );
+                              })()
                             ) : (
                               <div className="text-sm text-gray-500">
-                                {submission.submitters.map(s => s.email).join(", ")}
+                                {submission.submitters
+                                  .map((s) => s.email)
+                                  .join(", ")}
                               </div>
                             )}
                           </div>
@@ -992,7 +1137,9 @@ export default function SubmissionsPage() {
                         <TableCell>
                           <div className="flex items-center text-muted-foreground">
                             <Calendar className="mr-2 h-4 w-4" />
-                            {new Date(submission.created_at).toLocaleDateString()}
+                            {new Date(
+                              submission.created_at
+                            ).toLocaleDateString()}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1027,15 +1174,25 @@ export default function SubmissionsPage() {
 
                       <div className="space-y-3">
                         <div className="text-sm">
-                          <span className="font-medium text-gray-500 block mb-1">Parties Status:</span>
+                          <span className="font-medium text-gray-500 block mb-1">
+                            Parties Status:
+                          </span>
                           <div className="space-y-2 pl-2 border-l-2 border-gray-100">
-                            {submission.submitter_status && submission.submitter_status.length > 0 ? (
+                            {submission.submitter_status &&
+                            submission.submitter_status.length > 0 ? (
                               submission.submitter_status.map((status) => (
-                                <div key={status.id} className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-700">{status.role || "Party"}:</span>
+                                <div
+                                  key={status.id}
+                                  className="flex items-center justify-between text-sm"
+                                >
+                                  <span className="text-gray-700">
+                                    {status.role || "Party"}:
+                                  </span>
                                   <Badge
                                     variant="outline"
-                                    className={`text-xs ${getStatusBadgeVariant(status.status)}`}
+                                    className={`text-xs ${getStatusBadgeVariant(
+                                      status.status
+                                    )}`}
                                   >
                                     {status.status.toUpperCase()}
                                   </Badge>
@@ -1043,7 +1200,9 @@ export default function SubmissionsPage() {
                               ))
                             ) : (
                               <div className="text-sm text-gray-500">
-                                {submission.submitters.map(s => s.email).join(", ")}
+                                {submission.submitters
+                                  .map((s) => s.email)
+                                  .join(", ")}
                               </div>
                             )}
                           </div>
@@ -1051,7 +1210,8 @@ export default function SubmissionsPage() {
 
                         <div className="flex items-center text-sm text-muted-foreground pt-2 border-t">
                           <Calendar className="mr-2 h-4 w-4" />
-                          Created: {new Date(submission.created_at).toLocaleDateString()}
+                          Created:{" "}
+                          {new Date(submission.created_at).toLocaleDateString()}
                         </div>
                       </div>
                     </CardContent>
@@ -1059,10 +1219,9 @@ export default function SubmissionsPage() {
                 ))}
               </div>
             </>
-          )
-          }
-        </div >
-      </div >
+          )}
+        </div>
+      </div>
     </>
   );
 }
