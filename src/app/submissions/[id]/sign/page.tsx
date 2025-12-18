@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, Copy, CheckCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -14,31 +15,37 @@ export default function SignSubmissionPage() {
   const [loading, setLoading] = useState(true);
   const [signingLink, setSigningLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [submission, setSubmission] = useState<DocuSeal.Submission | null>(null);
+  const [submission, setSubmission] = useState<DocuSeal.Submission | null>(
+    null
+  );
+
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    if (submissionId) {
-      fetchSubmissionSigningLink(submissionId);
+    if (submissionId && status === "authenticated") {
+      fetchSubmissionSigningLink(submissionId, session?.user?.email);
     }
-  }, [submissionId]);
+  }, [submissionId, status, session]);
 
-  const fetchSubmissionSigningLink = async (id: string) => {
+  const fetchSubmissionSigningLink = async (
+    id: string,
+    userEmail?: string | null
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      console.log('[sign page] Fetching submission:', id);
+      console.log("[sign page] Fetching submission:", id);
       const response = await fetch(`/api/docuseal/submissions/${id}`);
       if (!response.ok) {
         throw new Error("Failed to fetch submission details");
       }
       const data: DocuSeal.Submission = await response.json();
-      console.log('[sign page] Submission data:', data);
-      console.log('[sign page] Submitters:', data.submitters);
-      console.log('[sign page] First submitter embed_src:', data.submitters?.[0]?.embed_src);
+      console.log("[sign page] Submission data:", data);
+      console.log("[sign page] Submitters:", data.submitters);
       setSubmission(data);
-      
-      // Check if already completed
-      if (data.status === 'completed') {
+
+      // Check if already completed at the submission level
+      if (data.status === "completed") {
         setError(null);
         setSigningLink(null);
         toast.success("Document already signed!", {
@@ -46,23 +53,53 @@ export default function SignSubmissionPage() {
         });
         return;
       }
-      
-      // Use embed_src from the first submitter, or construct it from slug
-      if (data.submitters && data.submitters[0]) {
-        const submitter = data.submitters[0];
-        // embed_src might not be in the response, so construct it from slug
-        const embedSrc = submitter.embed_src || `https://docuseal.com/s/${submitter.slug}`;
-        console.log('[sign page] Setting signing link:', embedSrc);
+
+      // Find the submitter for the current user
+      const currentUserSubmitter = data.submitters?.find(
+        (submitter) => submitter.email === userEmail
+      );
+
+      if (currentUserSubmitter) {
+        console.log(
+          "[sign page] Current user submitter:",
+          currentUserSubmitter
+        );
+        // If current user has already completed their signing, show a message
+        if (currentUserSubmitter.status === "completed") {
+          setError(null);
+          setSigningLink(null);
+          toast.info("You have already signed this document!", {
+            description: "Waiting for other signers to complete.",
+          });
+          return;
+        }
+
+        // Use embed_src from the current user's submitter, or construct it from slug
+        const embedSrc =
+          currentUserSubmitter.embed_src ||
+          `https://docuseal.com/s/${currentUserSubmitter.slug}`;
+        console.log(
+          "[sign page] Setting signing link for current user:",
+          embedSrc
+        );
         setSigningLink(embedSrc);
       } else {
-        console.error('[sign page] No submitters found. Full data:', JSON.stringify(data, null, 2));
-        setError("Signing link not found for this submission.");
-        toast.error("Signing link missing", {
-          description: "The signing link for this submission could not be found.",
+        console.error(
+          "[sign page] No submitter found for current user or no submitters at all. Full data:",
+          JSON.stringify(data, null, 2)
+        );
+        setError(
+          "You are not authorized to sign this document or the signing link is not available."
+        );
+        toast.error("Unauthorized or link missing", {
+          description:
+            "Please ensure you are logged in with the correct account or contact the sender.",
         });
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred while fetching the signing link.");
+      setError(
+        err.message || "An error occurred while fetching the signing link."
+      );
       toast.error("Error fetching signing link", {
         description: err.message || "Please try again.",
       });
@@ -74,8 +111,8 @@ export default function SignSubmissionPage() {
   const handleCopyLink = () => {
     if (signingLink) {
       navigator.clipboard.writeText(signingLink);
-      toast.success('Signing link copied to clipboard!', {
-        description: 'Share this link with the person who needs to sign.',
+      toast.success("Signing link copied to clipboard!", {
+        description: "Share this link with the person who needs to sign.",
       });
     }
   };
@@ -89,18 +126,18 @@ export default function SignSubmissionPage() {
   }
 
   // Show completed status
-  if (submission?.status === 'completed') {
+  if (submission?.status === "completed") {
     return (
       <div className="container mx-auto py-8">
         <Button
           variant="ghost"
-          onClick={() => router.push('/submissions')}
+          onClick={() => router.push("/submissions")}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Submissions
         </Button>
-        
+
         <Card className="max-w-2xl mx-auto">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -111,7 +148,9 @@ export default function SignSubmissionPage() {
               </p>
               {submission.documents?.[0]?.url && (
                 <Button
-                  onClick={() => window.open(submission.documents[0].url, '_blank')}
+                  onClick={() =>
+                    window.open(submission.documents[0].url, "_blank")
+                  }
                 >
                   Download Signed Document
                 </Button>
@@ -128,18 +167,20 @@ export default function SignSubmissionPage() {
       <div className="container mx-auto py-8">
         <Button
           variant="ghost"
-          onClick={() => router.push('/submissions')}
+          onClick={() => router.push("/submissions")}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Submissions
         </Button>
-        
+
         <Card className="max-w-2xl mx-auto">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-red-500 mb-4">Error: {error}</p>
-              <Button onClick={() => router.push('/submissions')}>Go Back</Button>
+              <Button onClick={() => router.push("/submissions")}>
+                Go Back
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -152,18 +193,22 @@ export default function SignSubmissionPage() {
       <div className="container mx-auto py-8">
         <Button
           variant="ghost"
-          onClick={() => router.push('/submissions')}
+          onClick={() => router.push("/submissions")}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Submissions
         </Button>
-        
+
         <Card className="max-w-2xl mx-auto">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-muted-foreground mb-4">No signing form available.</p>
-              <Button onClick={() => router.push('/submissions')}>Go Back</Button>
+              <p className="text-muted-foreground mb-4">
+                No signing form available.
+              </p>
+              <Button onClick={() => router.push("/submissions")}>
+                Go Back
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -174,34 +219,29 @@ export default function SignSubmissionPage() {
   return (
     <div className="container mx-auto py-8">
       <div className="flex items-center justify-between mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/submissions')}
-        >
+        <Button variant="ghost" onClick={() => router.push("/submissions")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Submissions
         </Button>
-        
-        <Button
-          variant="outline"
-          onClick={handleCopyLink}
-        >
+
+        <Button variant="outline" onClick={handleCopyLink}>
           <Copy className="mr-2 h-4 w-4" />
           Copy Link to Share
         </Button>
       </div>
-      
+
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
             <div className="text-4xl">📝</div>
             <h2 className="text-2xl font-bold">Ready to Sign</h2>
             <p className="text-muted-foreground max-w-md">
-              Click the button below to open the signing form. You'll be able to review and sign the document.
+              Click the button below to open the signing form. You'll be able to
+              review and sign the document.
             </p>
             <Button
               size="lg"
-              onClick={() => window.open(signingLink, '_blank')}
+              onClick={() => window.open(signingLink, "_blank")}
               className="mt-4"
             >
               Open Signing Form
@@ -212,7 +252,7 @@ export default function SignSubmissionPage() {
           </div>
         </CardContent>
       </Card>
-      
+
       <div className="mt-4 text-center text-sm text-muted-foreground">
         <p>Or copy the link above to share with someone else.</p>
       </div>
