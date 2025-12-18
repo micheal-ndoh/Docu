@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 5.70"
     }
   }
   required_version = ">= 1.0"
@@ -38,7 +38,6 @@ data "archive_file" "source" {
   excludes = [
     ".terraform",
     ".git",
-    "terraform/.terraform.lock.hcl",
     "node_modules",
     ".next"
   ]
@@ -95,7 +94,7 @@ resource "aws_lambda_function" "web" {
   function_name = var.project_name
   role          = aws_iam_role.lambda_execution.arn
   package_type  = "Image"
-    image_uri     = "${local.repo_url}:${data.external.git_commit.result.commit_hash}"
+  image_uri     = "${local.repo_url}:${data.external.git_commit.result.commit_hash}"
   architectures = ["x86_64"]
   timeout       = 30
   memory_size   = 1024
@@ -139,9 +138,8 @@ resource "aws_cloudfront_invalidation" "invalidation" {
   distribution_id = aws_cloudfront_distribution.s3_distribution.id
   paths           = ["/*"]
 
-  # This lifecycle block ensures that a new invalidation is created on every deployment.
-  lifecycle {
-    create_before_destroy = true
+  triggers = {
+    lambda_image = aws_lambda_function.web.image_uri
   }
 }
 
