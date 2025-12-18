@@ -134,14 +134,10 @@ resource "aws_lambda_function_url" "web" {
 }
 
 
-resource "aws_cloudfront_invalidation" "invalidation" {
-  distribution_id = aws_cloudfront_distribution.s3_distribution.id
-  paths           = ["/*"]
-
-  triggers = {
-    lambda_image = aws_lambda_function.web.image_uri
-  }
-}
+# resource "aws_cloudfront_invalidation" "invalidation" {
+#   distribution_id = aws_cloudfront_distribution.s3_distribution.id
+#   paths           = ["/*"]
+# }
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
@@ -196,3 +192,14 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 }
 
+resource "null_resource" "cloudfront_invalidation" {
+  depends_on = [aws_cloudfront_distribution.s3_distribution]
+
+  triggers = {
+    lambda_image = aws_lambda_function.web.image_uri
+  }
+
+  provisioner "local-exec" {
+    command = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.s3_distribution.id} --paths '/*'"
+  }
+}
