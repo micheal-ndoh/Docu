@@ -77,8 +77,3 @@ variable "admin_email" {
   sensitive   = true
 }
 
-variable "image_tag" {
-  description = "Docker image tag to deploy (typically git SHA from CI/CD)"
-  type        = string
-  default     = "latest"
-}

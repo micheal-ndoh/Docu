@@ -44,19 +44,24 @@ data "archive_file" "source" {
   ]
 }
 
+data "external" "git_commit" {
+  program = ["bash", "-c", "echo '{\"commit_hash\":\"'$(git rev-parse HEAD)'\"}'"]
+}
+
 resource "null_resource" "docker_push" {
   depends_on = [aws_ecr_repository.main]
 
   triggers = {
     source_code_hash = data.archive_file.source.output_sha
+    commit_hash      = data.external.git_commit.result.commit_hash
   }
 
   provisioner "local-exec" {
     command = <<EOT
       aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${local.repo_url}
       cd ..
-      docker build -t ${local.repo_url}:latest .
-      docker push ${local.repo_url}:latest
+      docker build -t ${local.repo_url}:${data.external.git_commit.result.commit_hash} .
+      docker push ${local.repo_url}:${data.external.git_commit.result.commit_hash}
       cd terraform
     EOT
   }
@@ -90,7 +95,7 @@ resource "aws_lambda_function" "web" {
   function_name = var.project_name
   role          = aws_iam_role.lambda_execution.arn
   package_type  = "Image"
-  image_uri     = "${local.repo_url}:${var.image_tag}"
+    image_uri     = "${local.repo_url}:${data.external.git_commit.result.commit_hash}"
   architectures = ["x86_64"]
   timeout       = 30
   memory_size   = 1024
@@ -126,6 +131,19 @@ resource "aws_lambda_function_url" "web" {
     allow_methods     = ["*"]
     allow_origins     = ["*"]
     allow_headers     = ["*"]
+  }
+}
+
+resource "aws_cloudfront_invalidation" "invalidation" {
+  distribution_id = aws_cloudfront_distribution.s3_distribution.id
+  paths             = ["/*"]
+
+  triggers = {
+    redeployment = timestamp()
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
